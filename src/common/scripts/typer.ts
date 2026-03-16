@@ -5,6 +5,7 @@ import { sleep } from "./util";
 export const createTyper = (letterContainer: HTMLElement) => {
   const text = letterContainer.textContent?.trim() ?? "";
   let splitText: Array<string>, timeout: number;
+
   function updateSplittedTextAndTimeout(text: string) {
     splitText = text.split("");
     timeout = 0x29a / splitText.length;

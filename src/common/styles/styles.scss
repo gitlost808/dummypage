@@ -42,9 +42,15 @@ canvas {
   height: 100dvh;
 
   .text {
-    font-size: variables.$font-size;
+    --subcontainer-overhang: clamp(1.5rem, 6vw, #{variables.$subcontainer-overhang-max});
+    font-size: clamp(
+      calc(variables.$font-size * 0.85),
+      calc(1rem + 3.2vw),
+      calc(variables.$font-size * 4.5)
+    );
     text-align: center;
-    width: 90vw;
+    width: fit-content;
+    max-width: 92vw;
 
     .subcontainer {
       animation: lineglow variables.$anim-time forwards;
@@ -52,14 +58,16 @@ canvas {
       border-radius: variables.$border-radius;
       border: 3px solid variables.$text-color;
       box-shadow: 0 0 variables.$shadow-amount variables.$text-color;
+      clip-path: inset(0 100% 0 0);
       box-sizing: border-box;
       margin-bottom: variables.$margin-bottom;
+      margin-left: calc(var(--subcontainer-overhang) / -2);
       max-height: 0;
       opacity: 0;
       padding: 0;
       text-align: left;
       transition: max-height variables.$anim-time;
-      width: 0;
+      width: calc(100% + var(--subcontainer-overhang));
     }
 
     .textcontainer > *, .subcontainer > * {
@@ -88,36 +96,17 @@ canvas {
     }
 
     .hint {
-      font-size: calc(variables.$font-size * variables.$font-size-hint-factor);
+      font-size: calc(1em * variables.$font-size-hint-factor);
     }
     
     h1 {
-      font-size: calc(variables.$font-size * variables.$font-size-subtitle-factor);
+      font-size: calc(1em * variables.$font-size-subtitle-factor);
     }
 
-    $breakpoints: (
-      375: 1.0,
-      576: 1.2,
-      768: 1.4,
-      992: 1.6,
-      1200: 1.8,
-      1400: 2.0
-    );
-    
-    @each $bp, $scale in $breakpoints {
-      @media screen and (min-width: #{$bp}px) {
-        font-size: calc(variables.$font-size * #{$scale});
-        width: auto;
-        min-width: calc(variables.$box-min-width * #{$scale} * 0.6);
-
-        .hint {
-          font-size: calc(variables.$font-size * #{$scale} * variables.$font-size-hint-factor);
-        }
-
-        h1 {
-          font-size: calc(variables.$font-size * variables.$font-size-subtitle-factor);
-        }
-      }
+    @media screen and (max-width: 512px) {
+      --subcontainer-overhang: 1rem;
+      width: calc(100vw - 1.5rem - var(--subcontainer-overhang));
+      max-width: calc(100vw - 1.5rem - var(--subcontainer-overhang));
     }
   }
 }
