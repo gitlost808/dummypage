@@ -3,6 +3,8 @@ import { createTyper } from "../common/scripts/typer";
 import { sleep } from "../common/scripts/util";
 
 const retryInterval = 0x29a * 0x69;
+const MAX_RETRY_ATTEMPTS = 10;
+let retryAttempts = 0;
 
 let firstFetch = true;
 let userCount = "0";
@@ -44,43 +46,74 @@ async function updatePlayerList() {
 }
 
 async function updateUserCount(noRetry = false) {
-  let users = await fetch("https://ts.0x29a.me/api/clientlist");
-  let usersJson = await users.json();
-  filteredUsers = usersJson.body.filter((user) => {
-    const isNormalClient = user.client_type === "0";
-    const filteredDbIds = [
-      "76", "75"
-    ];
-    return isNormalClient &&
-     !filteredDbIds.includes(user.client_database_id);
-  });
-  await updatePlayerList();
-  const el = document.querySelector(".textcontainer > h1");
-  userCount = filteredUsers.length.toString();
-
-  if (el.textContent !== userCount) {
-    el.innerHTML = "";
-    userCount.split("").forEach((c) => {
-      const userNumberSpan = document.createElement("span");
-      userNumberSpan.classList.add("fadetext");
-      userNumberSpan.textContent = c;
-      el.appendChild(userNumberSpan);
+  try {
+    let users = await fetch("https://ts.0x29a.me/api/clientlist");
+    let usersJson = await users.json();
+    filteredUsers = usersJson.body.filter((user) => {
+      const isNormalClient = user.client_type === "0";
+      const filteredDbIds = [
+        "76", "75"
+      ];
+      return isNormalClient &&
+       !filteredDbIds.includes(user.client_database_id);
     });
+    await updatePlayerList();
+    const el = document.querySelector(".textcontainer > h1");
+    userCount = filteredUsers.length.toString();
 
-    if (firstFetch) {
-      firstFetch = false;
-    } else {
-      rippleCenter(el);
+    if (el.textContent !== userCount) {
+      el.innerHTML = "";
+      userCount.split("").forEach((c) => {
+        const userNumberSpan = document.createElement("span");
+        userNumberSpan.classList.add("fadetext");
+        userNumberSpan.textContent = c;
+        el.appendChild(userNumberSpan);
+      });
+
+      if (firstFetch) {
+        firstFetch = false;
+      } else {
+        rippleCenter(el);
+      }
     }
+
+    // Reset retry attempts on successful fetch
+    retryAttempts = 0;
+  } catch (error) {
+    console.error("Failed to fetch user data:", error);
+
+    // Increment retry attempts
+    retryAttempts++;
+
+    // If we've exceeded max retry attempts, stop retrying
+    if (retryAttempts >= MAX_RETRY_ATTEMPTS) {
+      console.warn(`Max retry attempts (${MAX_RETRY_ATTEMPTS}) reached. Stopping retries.`);
+      retryAttempts = 0; // Reset for potential manual refresh
+      return;
+    }
+
+    console.warn(`Retry attempt ${retryAttempts}/${MAX_RETRY_ATTEMPTS} failed. Retrying in ${retryInterval}ms...`);
   }
+
   if (noRetry) return;
   retry();
 }
 
 async function retry() {
+  // If we've exceeded max retry attempts, stop retrying
+  if (retryAttempts >= MAX_RETRY_ATTEMPTS) {
+    console.warn(`Max retry attempts (${MAX_RETRY_ATTEMPTS}) reached. Stopping automatic retries.`);
+    return;
+  }
+
   await sleep(retryInterval);
   requestAnimationFrame(async () => {
-    await updateUserCount();
+    try {
+      await updateUserCount();
+    } catch (error) {
+      console.error("Retry failed:", error);
+      // Error handling is now in updateUserCount, so we don't need to handle it here
+    }
   });
 }
 
@@ -94,6 +127,7 @@ function setupRefreshButton() {
   document
     .querySelector("#refreshButton")
     ?.addEventListener("click", async () => {
+      retryAttempts = 0; // Reset retry counter on manual refresh
       await updateUserCount(true);
     });
 }
@@ -170,8 +204,9 @@ function setupListButton() {
 
 async function runner() {
   try {
-    updateUserCount();
+    await updateUserCount();
   } catch (err) {
+    console.error("Initial fetch failed:", err);
     retry();
   }
 
