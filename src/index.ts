@@ -56,15 +56,15 @@ async function main() {
   let firstTyper = typerTypers.shift();
   if (firstTyper) firstTyper();
   await animationSleep(0x29a * 2);
-  if (fastForwardVersion !== getAnimationFastForwardVersion()) {
-    return;
-  }
-  for (const typer of typerTypers) {
-    await typer();
-    if (fastForwardVersion !== getAnimationFastForwardVersion()) {
-      return;
+  if (fastForwardVersion === getAnimationFastForwardVersion()) {
+    for (const typer of typerTypers) {
+      await typer();
+      if (fastForwardVersion !== getAnimationFastForwardVersion()) {
+        break;
+      }
     }
   }
+
   const lastTyper = typers.at(-1);
   while (true) {
     await sleep(0x29a * 2);
