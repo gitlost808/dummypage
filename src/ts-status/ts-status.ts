@@ -1,6 +1,11 @@
 import { rippleCenter, globalRippler } from "../common/scripts/rippler";
 import { createTyper } from "../common/scripts/typer";
-import { sleep } from "../common/scripts/util";
+import {
+  animationSleep,
+  getAnimationFastForwardVersion,
+  setupAnimationFastForwardOnClick,
+  sleep,
+} from "../common/scripts/util";
 
 const retryInterval = 0x29a * 0x69;
 const MAX_RETRY_ATTEMPTS = 10;
@@ -203,6 +208,12 @@ function setupListButton() {
 }
 
 async function runner() {
+  const typers = [
+    createTyper(document.querySelector(".subcontainer > p")),
+    createTyper(document.querySelector(".hint")),
+  ];
+  typers.forEach(async (typer) => await typer.hide());
+
   try {
     await updateUserCount();
   } catch (err) {
@@ -215,19 +226,25 @@ async function runner() {
   setupCopyButton();
   setupListButton();
 
-  const typers = [
-    createTyper(document.querySelector(".subcontainer > p")),
-    createTyper(document.querySelector(".hint")),
-  ];
-  typers.forEach(async (typer) => await typer.hide());
+  if ("false" === document.querySelector(".subcontainer > p")?.dataset.hidden) {
+    return;
+  }
 
-  await sleep(0x29a * 2);
+  const fastForwardVersion = getAnimationFastForwardVersion();
+  await animationSleep(0x29a * 2);
+  if (fastForwardVersion !== getAnimationFastForwardVersion()) {
+    return;
+  }
   await typers[0].type();
+  if (fastForwardVersion !== getAnimationFastForwardVersion()) {
+    return;
+  }
   await typers[1].type();
 }
 document.addEventListener("DOMContentLoaded", () => {
   runner();
   globalRippler();
+  setupAnimationFastForwardOnClick();
 });
 
 if ("serviceWorker" in navigator) {
