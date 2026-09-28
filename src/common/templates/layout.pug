@@ -35,14 +35,15 @@ html(lang="en")
         type="module"
       )
   body
-    block content
-      .container
-        .text
-          block text
-            .textcontainer
-              h1 #{subtitle}
-            .subcontainer
-              block subcontainer
-                p #{text}
-                if hint
-                  p.hint #{hint}
+    main
+      block content
+        .container
+          .text
+            block text
+              .textcontainer
+                h1 #{subtitle}
+              .subcontainer
+                block subcontainer
+                  p #{text}
+                  if hint
+                    p.hint #{hint}
