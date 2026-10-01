@@ -167,6 +167,7 @@ canvas {
 
   .service-link {
     color: variables.$text-color;
+    display: block;
     text-decoration: none;
     transition: color variables.$anim-time;
 

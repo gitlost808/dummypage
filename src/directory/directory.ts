@@ -58,15 +58,15 @@ function createServiceItem(service: Service) {
   icon.setAttribute("aria-hidden", "true");
   name.textContent = service.name;
   link.append(icon, name);
-  item.append(link);
 
   if (typeof service.description === "string" && service.description.trim()) {
     const description = document.createElement("p");
     description.classList.add("service-description");
     description.textContent = service.description;
-    item.append(description);
+    link.append(description);
   }
 
+  item.append(link);
   return item;
 }
 
