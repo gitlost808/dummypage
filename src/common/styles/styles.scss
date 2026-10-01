@@ -111,14 +111,14 @@ canvas {
   }
 }
 
-.directory-container {
+.services-container {
   align-items: flex-start;
   box-sizing: border-box;
   min-height: 100dvh;
   overflow-y: auto;
   padding: clamp(2rem, 10vh, 7rem) 1rem;
 
-  .text.directory {
+  .text.services {
     font-size: clamp(1.25rem, 1rem + 1.5vw, 2rem);
     width: min(42rem, 92vw);
 

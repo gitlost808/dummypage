@@ -1,17 +1,17 @@
 extends ../common/templates/layout.pug
 
 block prepend content
-  - var title = "service directory"
+  - var title = "services"
 
 block scripts
   script(
-    src="directory.ts"
+    src="services.ts"
     type="module"
   )
 
 block content
-  .container.directory-container
-    .text.directory
+  .container.services-container
+    .text.services
       .textcontainer
         h1 ./services
       .subcontainer

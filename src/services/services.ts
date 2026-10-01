@@ -93,7 +93,7 @@ async function loadServices() {
       ...(serviceItems.length ? serviceItems : [message("no services available")]),
     );
   } catch (error) {
-    console.error("Failed to load service directory:", error);
+    console.error("Failed to load services:", error);
     serviceList.replaceChildren(message("unable to load services"));
   }
 }
@@ -107,7 +107,7 @@ async function fetchLiveServices(): Promise<unknown> {
 async function animateIntro() {
   const fastForwardVersion = getAnimationFastForwardVersion();
   const typers = Array.from(
-    document.querySelectorAll<HTMLElement>(".directory .textcontainer > *"),
+    document.querySelectorAll<HTMLElement>(".services .textcontainer > *"),
   ).map((element) => createTyper(element));
 
   await Promise.all(typers.map((typer) => typer.hide()));
