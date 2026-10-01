@@ -111,6 +111,78 @@ canvas {
   }
 }
 
+.directory-container {
+  align-items: flex-start;
+  box-sizing: border-box;
+  min-height: 100dvh;
+  overflow-y: auto;
+  padding: clamp(2rem, 10vh, 7rem) 1rem;
+
+  .text.directory {
+    font-size: clamp(1.25rem, 1rem + 1.5vw, 2rem);
+    width: min(42rem, 92vw);
+
+    .textcontainer {
+      text-align: left;
+
+      h1 {
+        font-size: calc(1em * variables.$font-size-subtitle-factor);
+      }
+    }
+
+    .subcontainer {
+      animation: none;
+      clip-path: none;
+      margin-top: variables.$margin-bottom;
+      max-height: none;
+      opacity: 1;
+      padding: clamp(1rem, 3vw, 1.5rem);
+      width: 100%;
+    }
+  }
+}
+
+.service-list {
+  list-style: none;
+  margin: 1.5rem 0 0;
+  padding: 0;
+
+  li + li {
+    border-top: 1px solid color.adjust(variables.$text-color, $alpha: -0.65);
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+  }
+
+  .service-link {
+    color: variables.$text-color;
+    text-decoration: none;
+    transition: color variables.$anim-time;
+
+    &:hover,
+    &:focus-visible {
+      color: color.scale(variables.$text-color, $lightness: variables.$lighten-by);
+    }
+
+    &:focus-visible {
+      border-radius: variables.$border-radius;
+      box-shadow: 0 0 0 2px variables.$text-color;
+      outline: none;
+    }
+
+    i {
+      margin-right: variables.$margin-bottom;
+      min-width: 1.25em;
+      text-align: center;
+    }
+  }
+
+  .service-description {
+    color: color.adjust(variables.$text-color, $alpha: -0.25);
+    font-size: 0.75em;
+    margin: 0.4rem 0 0 2.25em;
+  }
+}
+
 .modal {
   display: flex;
   flex-direction: column;
