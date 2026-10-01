@@ -4,3 +4,7 @@ block prepend content
     - var subtitle = "0x29a.me"
     - var text = "startup paused..."
     - var hint = "waiting for signal..."
+
+block append text
+    a#directoryButton.btn.btn-transform.btn-anim-staggering(href="/directory/" title="service directory" aria-label="Open service directory")
+        i.fa-solid.fa-list

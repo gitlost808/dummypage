@@ -111,6 +111,90 @@ canvas {
   }
 }
 
+.directory-container {
+  align-items: flex-start;
+  box-sizing: border-box;
+  min-height: 100dvh;
+  overflow-y: auto;
+  padding: clamp(2rem, 10vh, 7rem) 1rem;
+
+  .text.directory {
+    font-size: clamp(1.25rem, 1rem + 1.5vw, 2rem);
+    width: min(42rem, 92vw);
+
+    .textcontainer {
+      text-align: left;
+
+      h1 {
+        font-size: calc(1em * variables.$font-size-subtitle-factor);
+      }
+    }
+
+    .subcontainer {
+      margin-top: variables.$margin-bottom;
+    }
+  }
+}
+
+.service-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+
+  .service-list-item {
+    animation: fadeInUnblur variables.$anim-time forwards;
+    opacity: 0;
+  }
+
+  li + li {
+    margin-top: 0.75rem;
+    padding-top: calc(0.75rem + 3px);
+
+    &::before {
+      background: variables.$text-color;
+      content: "";
+      height: 3px;
+      left: calc(-16px - 3px);
+      position: absolute;
+      right: calc(-16px - 3px);
+      top: 0;
+    }
+  }
+
+  li {
+    position: relative;
+  }
+
+  .service-link {
+    color: variables.$text-color;
+    text-decoration: none;
+    transition: color variables.$anim-time;
+
+    &:hover,
+    &:focus-visible {
+      color: color.scale(variables.$text-color, $lightness: variables.$lighten-by);
+    }
+
+    &:focus-visible {
+      border-radius: variables.$border-radius;
+      box-shadow: 0 0 0 2px variables.$text-color;
+      outline: none;
+    }
+
+    i {
+      margin-right: variables.$margin-bottom;
+      min-width: 1.25em;
+      text-align: center;
+    }
+  }
+
+  .service-description {
+    color: color.adjust(variables.$text-color, $alpha: -0.25);
+    font-size: 0.75em;
+    margin: 0.4rem 0 0 2.25em;
+  }
+}
+
 .modal {
   display: flex;
   flex-direction: column;

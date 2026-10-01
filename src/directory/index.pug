@@ -1,0 +1,19 @@
+extends ../common/templates/layout.pug
+
+block prepend content
+  - var title = "service directory"
+
+block scripts
+  script(
+    src="directory.ts"
+    type="module"
+  )
+
+block content
+  .container.directory-container
+    .text.directory
+      .textcontainer
+        h1 ./services
+      .subcontainer
+        ul#serviceList.service-list(aria-live="polite")
+          li loading services...

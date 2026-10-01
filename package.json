@@ -20,6 +20,7 @@
   },
   "source": [
     "src/index.pug",
+    "src/directory/index.pug",
     "src/ts-status/index.pug",
     "src/fixed-calendar/index.pug",
     "src/game/index.pug",
