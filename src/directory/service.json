@@ -1,0 +1,17 @@
+[
+  {
+    "name": "TeamSpeak status",
+    "url": "/ts-status/",
+    "description": "See who is online."
+  },
+  {
+    "name": "Fixed calendar",
+    "url": "/fixed-calendar/",
+    "description": "A calendar with fixed-length months."
+  },
+  {
+    "name": "Space game",
+    "url": "/game/",
+    "description": "A small browser game."
+  }
+]

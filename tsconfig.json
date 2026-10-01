@@ -3,6 +3,7 @@
         "types": ["phaser"],
         "module": "esnext",
         "moduleResolution": "bundler",
+        "resolveJsonModule": true,
         "lib": ["ESNext", "DOM", "DOM.Iterable", "WebWorker"],
     }
 }

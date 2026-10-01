@@ -131,26 +131,38 @@ canvas {
     }
 
     .subcontainer {
-      animation: none;
-      clip-path: none;
       margin-top: variables.$margin-bottom;
-      max-height: none;
-      opacity: 1;
-      padding: clamp(1rem, 3vw, 1.5rem);
-      width: 100%;
     }
   }
 }
 
 .service-list {
   list-style: none;
-  margin: 1.5rem 0 0;
+  margin: 0;
   padding: 0;
 
+  .service-list-item {
+    animation: fadeInUnblur variables.$anim-time forwards;
+    opacity: 0;
+  }
+
   li + li {
-    border-top: 1px solid color.adjust(variables.$text-color, $alpha: -0.65);
     margin-top: 0.75rem;
-    padding-top: 0.75rem;
+    padding-top: calc(0.75rem + 3px);
+
+    &::before {
+      background: variables.$text-color;
+      content: "";
+      height: 3px;
+      left: calc(-16px - 3px);
+      position: absolute;
+      right: calc(-16px - 3px);
+      top: 0;
+    }
+  }
+
+  li {
+    position: relative;
   }
 
   .service-link {
