@@ -37,6 +37,14 @@ function isService(value: unknown): value is Service {
   return typeof service.name === "string" && typeof service.url === "string";
 }
 
+function hasServices(value: unknown): value is { services: unknown[] } {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    Array.isArray((value as Record<string, unknown>).services)
+  );
+}
+
 function createServiceItem(service: Service) {
   const item = document.createElement("li");
   const link = document.createElement("a");
@@ -69,9 +77,9 @@ async function loadServices() {
     const payload: unknown = isLocalEnvironment
       ? localServices
       : await fetchLiveServices();
-    if (!Array.isArray(payload)) throw new Error("Expected an array");
+    if (!hasServices(payload)) throw new Error("Expected a services array");
 
-    const services = payload.filter(isService);
+    const services = payload.services.filter(isService);
     const serviceItems = services.map(createServiceItem);
     serviceItems.forEach((item, index) => {
       if (serviceAnimationsSkipped) {
