@@ -9,9 +9,11 @@ import { ScoreSystem } from './systems/ScoreSystem';
 import { EnemySpawner } from './systems/EnemySpawner';
 import { KeyboardInput } from './input/KeyboardInput';
 import { TouchInput } from './input/TouchInput';
+import { CombinedInput } from './input/CombinedInput';
+import { InputController } from './input/InputController';
 
 export default class GameScene extends Phaser.Scene {
-  private inputType!: KeyboardInput | TouchInput;
+  private inputType!: CombinedInput;
   private player!: PlayerShip;
   private projectiles!: Phaser.Physics.Arcade.Group;
   private enemyProjectiles!: Phaser.Physics.Arcade.Group;
@@ -24,10 +26,16 @@ export default class GameScene extends Phaser.Scene {
   }
 
   create(): void {
-    // choose input based on touch support
-    this.inputType = this.sys.game.device.input.touch
-      ? new TouchInput(this)
-      : new KeyboardInput(this);
+    // keyboard always works; add touch controls when touch is supported
+    // (touch-capable desktops report touch too, so it can't replace the keyboard)
+    const inputs: InputController[] = [new KeyboardInput(this)];
+    if (this.sys.game.device.input.touch) {
+      const touch = new TouchInput(this);
+      inputs.push(touch);
+      // keyboard players don't need the touch hints
+      this.input.keyboard.once('keydown', () => touch.fadeHints());
+    }
+    this.inputType = new CombinedInput(inputs);
 
     // visuals
     this.starfield = new Starfield(this);

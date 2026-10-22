@@ -137,7 +137,7 @@ export class TouchInput implements InputController {
     this.hintText.setPosition(width / 2, height - 50);
   }
 
-  private fadeHints(): void {
+  public fadeHints(): void {
     if (!this.hintShown) return;
     this.hintShown = false;
     this.scene.tweens.add({
