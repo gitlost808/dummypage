@@ -15,7 +15,6 @@ type EnemyProfile = {
   evasionScale: number;
   diveChancePerSecond: number;
   fireIntervalMs: number;
-  aimJitter: number;
 };
 
 export class EnemyShip extends Ship {
@@ -32,7 +31,6 @@ export class EnemyShip extends Ship {
     evasionScale: 1,
     diveChancePerSecond: 0,
     fireIntervalMs: constants.enemyFireIntervalBase,
-    aimJitter: constants.enemyAimJitter,
   };
 
   // new evasion state
@@ -59,17 +57,28 @@ export class EnemyShip extends Ship {
   ): void {
     this.profile = profile;
     this.speed = profile.speed;
+    // reset all state, since pooled enemies get reused
     this.isDiving = false;
+    this.diveEndsAt = 0;
     this.isEvading = false;
+    this.setVelocity(0, 0);
     this.projectilePool = projectilePool;
-    if (this.evasionTimer) {
-      this.evasionTimer.remove(false);
-    }
-    if (this.fireTimer) {
-      this.fireTimer.remove(false);
-    }
+    this.cancelTimers();
     this.scheduleNextEvasion();
     this.scheduleFire();
+  }
+
+  // return to the pool; stop timers so an inactive enemy can't fire or evade
+  public despawn(): void {
+    this.cancelTimers();
+    this.disableBody(true, true);
+  }
+
+  private cancelTimers(): void {
+    if (this.fireTimer) this.fireTimer.remove(false);
+    if (this.evasionTimer) this.evasionTimer.remove(false);
+    this.fireTimer = undefined;
+    this.evasionTimer = undefined;
   }
 
   update(): void {
@@ -84,7 +93,7 @@ export class EnemyShip extends Ship {
     } else if (this.isEvading) {
       this.setVelocityX(this.evasionDir * constants.evasionSpeed);
     } else {
-      this.handleBehavior(delta);
+      this.handleBehavior();
       this.maybeStartDive(delta);
     }
 
@@ -96,11 +105,11 @@ export class EnemyShip extends Ship {
 
     // off-screen clean up
     if (this.y > this.scene.scale.height + this.height) {
-      this.destroy();
+      this.despawn();
     }
   }
 
-  private handleBehavior(delta: number): void {
+  private handleBehavior(): void {
     if (!this.target) return;
 
     const targetX = this.target.x;
@@ -182,7 +191,8 @@ export class EnemyShip extends Ship {
       constants.evasionDurationMin,
       constants.evasionDurationMax,
     ) / Math.max(scale, 0.5);
-    this.scene.time.delayedCall(duration, () => {
+    // track the end-of-evasion timer so it can be cancelled too
+    this.evasionTimer = this.scene.time.delayedCall(duration, () => {
       if (!this.active) return;
       this.isEvading = false;
       this.scheduleNextEvasion();
@@ -208,16 +218,12 @@ export class EnemyShip extends Ship {
     const bullet = this.projectilePool.get(this.x, this.y + this.height * 0.5, 'enemy-projectile') as EnemyProjectile;
     if (!bullet) return;
 
-    bullet.setActive(true).setVisible(true);
-    (bullet.body as Phaser.Physics.Arcade.Body).enable = true;
-
     // fire straight down (mirrors player straight up)
     bullet.reset(this.x, this.y + this.height * 0.5, 0, constants.enemyProjectileSpeed);
   }
 
   preDestroy(): void {
-    if (this.fireTimer) this.fireTimer.remove(false);
-    if (this.evasionTimer) this.evasionTimer.remove(false);
+    this.cancelTimers();
     super.preDestroy();
   }
 }

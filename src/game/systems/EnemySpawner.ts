@@ -76,9 +76,6 @@ export class EnemySpawner {
           constants.enemyFireIntervalMin,
           constants.enemyFireIntervalBase
         );
-    const aimJitter = tier < constants.enemyFireStartTier
-      ? constants.enemyAimJitter
-      : Math.max(constants.enemyAimJitter * (1 - tier * 0.08), 0.01);
 
     // Obtain an enemy from the pool (or create if none free)
     const enemy = this.enemies.get(x, 0, 'enemy') as EnemyShip;
@@ -86,9 +83,8 @@ export class EnemySpawner {
       return;
     }
 
-    // Reactivate and configure
-    enemy.setActive(true).setVisible(true);
-    (enemy.body as Phaser.Physics.Arcade.Body).enable = true;
+    // Reactivate (resetting the body to the spawn point) and configure
+    enemy.enableBody(true, x, 0, true, true);
     enemy.setTarget(this.player);
     enemy.configure({
       behavior,
@@ -99,7 +95,6 @@ export class EnemySpawner {
       evasionScale,
       diveChancePerSecond,
       fireIntervalMs,
-      aimJitter,
     }, this.enemyProjectiles);
   }
 

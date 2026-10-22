@@ -30,7 +30,6 @@ export const constants = {
   enemyFireIntervalBase: 1600,
   enemyFireIntervalDecrement: 120,
   enemyFireIntervalMin: 650,
-  enemyAimJitter: 0.08,
   enemyTrackStrengthBase: 0.75,
   enemyTrackStrengthIncrement: 0.05,
   enemySwayAmplitudeBase: 40,

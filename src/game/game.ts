@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import BootScene from './BootScene';
 import GameScene from './GameScene';
+import { constants } from './constants';
 
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
@@ -9,8 +10,8 @@ const config: Phaser.Types.Core.GameConfig = {
   scale: {
     mode: Phaser.Scale.RESIZE,
     autoCenter: Phaser.Scale.CENTER_BOTH,
-    width: 800,
-    height: 600,
+    width: constants.width,
+    height: constants.height,
   },
   physics: {
     default: 'arcade',

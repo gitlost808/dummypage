@@ -22,12 +22,13 @@ export class Projectile extends Phaser.Physics.Arcade.Sprite {
     });
   }
 
+  // (re)activate from the pool, moving the body to the new position
   reset(x: number, y: number): void {
-    this.setPosition(x, y);
+    this.enableBody(true, x, y, true, true);
   }
 
   update(): void {
     this.setVelocityY(-this.speed);
-    if (this.y < -this.height) this.destroy();
+    if (this.y < -this.height) this.disableBody(true, true);
   }
 }
