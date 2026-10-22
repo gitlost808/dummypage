@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { InputController } from './InputController';
+import { constants } from '../constants';
 
 export class TouchInput implements InputController {
   public left = false;
@@ -7,6 +8,7 @@ export class TouchInput implements InputController {
   public shoot = false;
 
   private activePointer: Phaser.Input.Pointer | null = null;
+  private originX = 0;
   private scene: Phaser.Scene;
   private originMarker?: Phaser.GameObjects.Container;
   private originHandle?: Phaser.GameObjects.Arc;
@@ -48,6 +50,7 @@ export class TouchInput implements InputController {
     scene.input.on('pointerdown', this.onDown, this);
     scene.input.on('pointermove', this.onMove, this);
     scene.input.on('pointerup', this.onUp, this);
+    scene.input.on('pointerupoutside', this.onUp, this);
   }
 
   private onDown(p: Phaser.Input.Pointer) {
@@ -55,6 +58,7 @@ export class TouchInput implements InputController {
     if (p.x < width / 2) {
       // Begin movement tracking
       this.activePointer = p;
+      this.originX = p.x;
       this.left = false;
       this.right = false;
       this.showOriginMarker(p.x, p.y);
@@ -68,11 +72,10 @@ export class TouchInput implements InputController {
 
   private onMove(p: Phaser.Input.Pointer) {
     if (p === this.activePointer) {
-      const half = this.scene.scale.width / 2;
-      // Map x from [0..half] → [-1..+1]
-      const norm = Phaser.Math.Clamp((p.x / half) * 2 - 1, -1, 1);
-      this.left  = norm < -0.2;
-      this.right = norm > +0.2;
+      // Direction comes from the offset to the touch-down origin (joystick centre)
+      const offset = p.x - this.originX;
+      this.left = offset < -constants.touchDeadZone;
+      this.right = offset > constants.touchDeadZone;
 
       if (this.originMarker && this.originHandle) {
         const dx = Phaser.Math.Clamp(p.x - this.originMarker.x, -36, 36);
