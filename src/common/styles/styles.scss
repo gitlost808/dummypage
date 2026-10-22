@@ -22,6 +22,16 @@ canvas {
   touch-action: none;
 }
 
+// phaser's RESIZE scale mode sizes the canvas to its parent, so the parent must fill the viewport
+#game {
+  position: fixed;
+  inset: 0;
+
+  canvas {
+    display: block;
+  }
+}
+
 .btn {
   @include mixins.btn-base;
   @include mixins.btn-state-styles-color;
