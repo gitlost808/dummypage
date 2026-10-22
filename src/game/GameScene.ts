@@ -75,7 +75,7 @@ export default class GameScene extends Phaser.Scene {
       this
     );
     
-    this.scale.on('resize', (gameSize: Phaser.Structs.Size) => {
+    const onResize = (gameSize: Phaser.Structs.Size) => {
       const { width, height } = gameSize;
 
       // resize starfield
@@ -84,15 +84,22 @@ export default class GameScene extends Phaser.Scene {
       // move score
       this.scoreSystem.setPosition(10, 10);
 
-      // reposition the player
+      // keep the player's x (clamped to the new width), only move y
+      const halfW = this.player.displayWidth / 2;
       this.player.setPosition(
-        width  / 2,
+        Phaser.Math.Clamp(this.player.x, halfW, width - halfW),
         height - constants.bottomMargin
       );
 
       // (and camera/world bounds if you’re using them)
       this.physics.world.setBounds(0, 0, width, height);
       this.cameras.main.setBounds(0, 0, width, height);
+    };
+
+    // the ScaleManager outlives this scene, so detach on shutdown/restart
+    this.scale.on('resize', onResize, this);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.scale.off('resize', onResize, this);
     });
   }
 

@@ -39,8 +39,10 @@ export class TouchInput implements InputController {
 
     this.layoutHints(width, height);
 
-    scene.scale.on('resize', (size: Phaser.Structs.Size) => {
-      this.layoutHints(size.width, size.height);
+    // the ScaleManager outlives the scene, so detach on shutdown/restart
+    scene.scale.on('resize', this.onResize, this);
+    scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      scene.scale.off('resize', this.onResize, this);
     });
 
     scene.input.on('pointerdown', this.onDown, this);
@@ -118,6 +120,10 @@ export class TouchInput implements InputController {
       duration: 200,
       onComplete: () => this.originMarker?.setVisible(false),
     });
+  }
+
+  private onResize(size: Phaser.Structs.Size): void {
+    this.layoutHints(size.width, size.height);
   }
 
   private layoutHints(width: number, height: number): void {
