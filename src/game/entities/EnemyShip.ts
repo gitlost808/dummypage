@@ -15,7 +15,6 @@ type EnemyProfile = {
   evasionScale: number;
   diveChancePerSecond: number;
   fireIntervalMs: number;
-  aimJitter: number;
 };
 
 export class EnemyShip extends Ship {
@@ -32,7 +31,6 @@ export class EnemyShip extends Ship {
     evasionScale: 1,
     diveChancePerSecond: 0,
     fireIntervalMs: constants.enemyFireIntervalBase,
-    aimJitter: constants.enemyAimJitter,
   };
 
   // new evasion state
@@ -84,7 +82,7 @@ export class EnemyShip extends Ship {
     } else if (this.isEvading) {
       this.setVelocityX(this.evasionDir * constants.evasionSpeed);
     } else {
-      this.handleBehavior(delta);
+      this.handleBehavior();
       this.maybeStartDive(delta);
     }
 
@@ -100,7 +98,7 @@ export class EnemyShip extends Ship {
     }
   }
 
-  private handleBehavior(delta: number): void {
+  private handleBehavior(): void {
     if (!this.target) return;
 
     const targetX = this.target.x;
@@ -182,7 +180,8 @@ export class EnemyShip extends Ship {
       constants.evasionDurationMin,
       constants.evasionDurationMax,
     ) / Math.max(scale, 0.5);
-    this.scene.time.delayedCall(duration, () => {
+    // track the end-of-evasion timer so it can be cancelled too
+    this.evasionTimer = this.scene.time.delayedCall(duration, () => {
       if (!this.active) return;
       this.isEvading = false;
       this.scheduleNextEvasion();

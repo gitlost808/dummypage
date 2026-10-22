@@ -76,9 +76,6 @@ export class EnemySpawner {
           constants.enemyFireIntervalMin,
           constants.enemyFireIntervalBase
         );
-    const aimJitter = tier < constants.enemyFireStartTier
-      ? constants.enemyAimJitter
-      : Math.max(constants.enemyAimJitter * (1 - tier * 0.08), 0.01);
 
     // Obtain an enemy from the pool (or create if none free)
     const enemy = this.enemies.get(x, 0, 'enemy') as EnemyShip;
@@ -99,7 +96,6 @@ export class EnemySpawner {
       evasionScale,
       diveChancePerSecond,
       fireIntervalMs,
-      aimJitter,
     }, this.enemyProjectiles);
   }
 
