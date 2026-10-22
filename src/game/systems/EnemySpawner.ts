@@ -49,10 +49,9 @@ export class EnemySpawner {
   }
 
   private spawn(): void {
-    const x = Phaser.Math.Between(
-      constants.enemySpawnMinX,
-      constants.enemySpawnMaxX
-    );
+    const width = this.scene.scale.width;
+    const margin = Math.min(constants.enemySpawnMargin, width / 2);
+    const x = Phaser.Math.Between(margin, width - margin);
     const tier = this.getTier();
     const behavior = this.pickBehavior(tier);
 
