@@ -22,14 +22,16 @@ export class EnemyProjectile extends Phaser.Physics.Arcade.Sprite {
     });
   }
 
+  // (re)activate from the pool, moving the body to the new position
   reset(x: number, y: number, vx: number, vy: number): void {
-    this.setPosition(x, y);
+    this.enableBody(true, x, y, true, true);
     this.setVelocity(vx, vy);
   }
 
   update(): void {
     if (this.y > this.scene.scale.height + this.height) {
-      this.destroy();
+      // return to the pool
+      this.disableBody(true, true);
     }
   }
 }

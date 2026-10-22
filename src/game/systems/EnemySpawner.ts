@@ -83,9 +83,8 @@ export class EnemySpawner {
       return;
     }
 
-    // Reactivate and configure
-    enemy.setActive(true).setVisible(true);
-    (enemy.body as Phaser.Physics.Arcade.Body).enable = true;
+    // Reactivate (resetting the body to the spawn point) and configure
+    enemy.enableBody(true, x, 0, true, true);
     enemy.setTarget(this.player);
     enemy.configure({
       behavior,

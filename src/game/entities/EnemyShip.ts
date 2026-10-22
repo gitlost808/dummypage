@@ -57,17 +57,28 @@ export class EnemyShip extends Ship {
   ): void {
     this.profile = profile;
     this.speed = profile.speed;
+    // reset all state, since pooled enemies get reused
     this.isDiving = false;
+    this.diveEndsAt = 0;
     this.isEvading = false;
+    this.setVelocity(0, 0);
     this.projectilePool = projectilePool;
-    if (this.evasionTimer) {
-      this.evasionTimer.remove(false);
-    }
-    if (this.fireTimer) {
-      this.fireTimer.remove(false);
-    }
+    this.cancelTimers();
     this.scheduleNextEvasion();
     this.scheduleFire();
+  }
+
+  // return to the pool; stop timers so an inactive enemy can't fire or evade
+  public despawn(): void {
+    this.cancelTimers();
+    this.disableBody(true, true);
+  }
+
+  private cancelTimers(): void {
+    if (this.fireTimer) this.fireTimer.remove(false);
+    if (this.evasionTimer) this.evasionTimer.remove(false);
+    this.fireTimer = undefined;
+    this.evasionTimer = undefined;
   }
 
   update(): void {
@@ -94,7 +105,7 @@ export class EnemyShip extends Ship {
 
     // off-screen clean up
     if (this.y > this.scene.scale.height + this.height) {
-      this.destroy();
+      this.despawn();
     }
   }
 
@@ -207,16 +218,12 @@ export class EnemyShip extends Ship {
     const bullet = this.projectilePool.get(this.x, this.y + this.height * 0.5, 'enemy-projectile') as EnemyProjectile;
     if (!bullet) return;
 
-    bullet.setActive(true).setVisible(true);
-    (bullet.body as Phaser.Physics.Arcade.Body).enable = true;
-
     // fire straight down (mirrors player straight up)
     bullet.reset(this.x, this.y + this.height * 0.5, 0, constants.enemyProjectileSpeed);
   }
 
   preDestroy(): void {
-    if (this.fireTimer) this.fireTimer.remove(false);
-    if (this.evasionTimer) this.evasionTimer.remove(false);
+    this.cancelTimers();
     super.preDestroy();
   }
 }

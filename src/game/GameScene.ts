@@ -3,6 +3,7 @@ import { constants } from './constants';
 import { PlayerShip } from './entities/PlayerShip';
 import { Projectile } from './entities/Projectile';
 import { EnemyProjectile } from './entities/EnemyProjectile';
+import { EnemyShip } from './entities/EnemyShip';
 import { Starfield } from './entities/Starfield';
 import { ScoreSystem } from './systems/ScoreSystem';
 import { EnemySpawner } from './systems/EnemySpawner';
@@ -67,8 +68,9 @@ export default class GameScene extends Phaser.Scene {
       this.projectiles,
       this.enemySpawner.getGroup(),
       (proj, enemy) => {
-        proj.destroy();
-        enemy.destroy();
+        // return both to their pools instead of destroying them
+        (proj as Projectile).disableBody(true, true);
+        (enemy as EnemyShip).despawn();
         this.scoreSystem.addPoints(constants.pointsPerHit);
       },
       undefined,
@@ -110,8 +112,6 @@ export default class GameScene extends Phaser.Scene {
     const { x, y } = this.player;
     const proj = this.projectiles.get(x, y - 16) as Projectile;
     if (!proj) return;
-    proj.setActive(true).setVisible(true);
-    (proj.body as Phaser.Physics.Arcade.Body).enable = true;
     proj.reset(x, y - 16);
   }
 
