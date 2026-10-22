@@ -52,4 +52,6 @@ export const constants = {
   // how fast they dodge laterally (pixels/sec)
   evasionSpeed: 200,
   bottomMargin: 200,
+  // horizontal joystick offset (px) before touch movement registers
+  touchDeadZone: 12,
 };
