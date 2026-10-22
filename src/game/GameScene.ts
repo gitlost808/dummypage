@@ -29,7 +29,12 @@ export default class GameScene extends Phaser.Scene {
     // keyboard always works; add touch controls when touch is supported
     // (touch-capable desktops report touch too, so it can't replace the keyboard)
     const inputs: InputController[] = [new KeyboardInput(this)];
-    if (this.sys.game.device.input.touch) inputs.push(new TouchInput(this));
+    if (this.sys.game.device.input.touch) {
+      const touch = new TouchInput(this);
+      inputs.push(touch);
+      // keyboard players don't need the touch hints
+      this.input.keyboard.once('keydown', () => touch.fadeHints());
+    }
     this.inputType = new CombinedInput(inputs);
 
     // visuals
