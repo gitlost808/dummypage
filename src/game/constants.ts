@@ -76,4 +76,12 @@ export const constants = {
   shieldHitShakeIntensity: 0.005,
   bombShakeMs: 300,
   bombShakeIntensity: 0.012,
+  explosionDeathParticles: 30,
+  deathShakeMs: 250,
+  deathShakeIntensity: 0.01,
+  // game-over screen
+  gameOverColor: 0xdc322f,
+  gameOverBackdropAlpha: 0.6,
+  // ignore restart input for this long after dying (in ms)
+  gameOverInputDelayMs: 600,
 };
