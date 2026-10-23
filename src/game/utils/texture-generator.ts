@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { constants } from '../constants';
+import { nebulaPixels } from './noise';
 
 export function generateAllTextures(scene: Phaser.Scene): void {
   const gfx = scene.add.graphics();
@@ -58,19 +59,25 @@ export function generateAllTextures(scene: Phaser.Scene): void {
   gfx.generateTexture('powerup-bomb', 24, 24);
   gfx.destroy();
 
-  // starfield
+  // star layers, one tileable texture each
   const starGfx = scene.add.graphics();
-  starGfx.fillStyle(constants.starColor);
-  for (let i = 0; i < constants.starCount; i++) {
-    starGfx.fillRect(
-      Phaser.Math.Between(0, constants.starTileSize - 1),
-      Phaser.Math.Between(0, constants.starTileSize - 1),
-      1,
-      1
-    );
-  }
-  starGfx.generateTexture('star', constants.starTileSize, constants.starTileSize);
+  constants.starLayers.forEach((layer, i) => {
+    for (let j = 0; j < layer.count; j++) {
+      // vary brightness a little so the layer doesn't look flat
+      starGfx.fillStyle(layer.color, Phaser.Math.FloatBetween(0.5, 1));
+      starGfx.fillRect(
+        Phaser.Math.Between(0, constants.starTileSize - layer.size),
+        Phaser.Math.Between(0, constants.starTileSize - layer.size),
+        layer.size,
+        layer.size
+      );
+    }
+    starGfx.generateTexture(`stars-${i}`, constants.starTileSize, constants.starTileSize);
+    starGfx.clear();
+  });
   starGfx.destroy();
+
+  generateNebulaTexture(scene);
 
   // explosion particle (white so it can be tinted)
   const particleGfx = scene.add.graphics();
@@ -112,6 +119,26 @@ export function generateAllTextures(scene: Phaser.Scene): void {
   enemyGfx.fillCircle(4, 4, 4);
   enemyGfx.generateTexture('enemy-projectile-aimed', 8, 8);
   enemyGfx.destroy();
+}
+
+function generateNebulaTexture(scene: Phaser.Scene): void {
+  const size = constants.nebulaTextureSize;
+  const texture = scene.textures.createCanvas('nebula', size, size);
+  if (!texture) return;
+
+  const pixels = nebulaPixels({
+    size,
+    basePeriod: constants.nebulaBasePeriod,
+    octaves: constants.nebulaOctaves,
+    coverage: constants.nebulaCoverage,
+    maxAlpha: constants.nebulaMaxAlpha,
+    colors: constants.nebulaColors,
+  });
+  const context = texture.getContext();
+  const image = context.createImageData(size, size);
+  image.data.set(pixels);
+  context.putImageData(image, 0, 0);
+  texture.refresh();
 }
 
 function drawPowerUpRing(gfx: Phaser.GameObjects.Graphics, color: number): void {
