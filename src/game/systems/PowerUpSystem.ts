@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { constants } from '../constants';
 import { PowerUp, PowerUpType } from '../entities/PowerUp';
 import { PlayerShip } from '../entities/PlayerShip';
+import { playSound } from '../utils/audio';
 
 const powerUpColors: Record<PowerUpType, number> = {
   shield: constants.shieldColor,
@@ -57,6 +58,7 @@ export class PowerUpSystem {
     const type = powerUp.powerUpType;
     const { x, y } = powerUp;
     powerUp.destroy();
+    playSound(this.scene, 'powerup');
 
     switch (type) {
       case 'shield':

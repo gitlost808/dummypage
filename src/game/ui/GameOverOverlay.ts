@@ -83,7 +83,13 @@ export class GameOverOverlay extends Phaser.GameObjects.Container {
     };
     scene.input.keyboard.on('keydown-SPACE', onKey);
     scene.input.keyboard.on('keydown-ENTER', onKey);
-    scene.input.on('pointerdown', restart);
+    // taps on UI such as the mute button shouldn't restart
+    scene.input.on(
+      'pointerdown',
+      (_pointer: Phaser.Input.Pointer, currentlyOver: Phaser.GameObjects.GameObject[]) => {
+        if (currentlyOver.length === 0) restart();
+      }
+    );
   }
 
   layout(width: number, height: number): void {
