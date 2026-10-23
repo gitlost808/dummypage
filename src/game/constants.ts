@@ -10,10 +10,25 @@ export const constants = {
   playerColor: 0x859900,
   enemyColor: 0xff0000,
   projectileColor: 0xffffff,
-  starColor: 0x606060,
-  starTileSize: 64,
-  starCount: 100,
-  starScrollSpeed: 0.5,
+  // background: a tileable Perlin-noise nebula with parallax star layers on top
+  nebulaTextureSize: 256,
+  // the texture is upscaled for large, soft clouds
+  nebulaTileScale: 4,
+  nebulaBasePeriod: 3,
+  nebulaOctaves: 5,
+  // noise density below this (0..1) is empty space
+  nebulaCoverage: 0.45,
+  nebulaMaxAlpha: 0.5,
+  nebulaColors: [0x268bd2, 0x6c71c4] as [number, number],
+  // scroll speeds are in pixels/sec
+  nebulaScrollSpeed: 6,
+  starTileSize: 256,
+  // far to near: nearer stars are brighter, bigger and faster
+  starLayers: [
+    { count: 140, size: 1, color: 0x505050, speed: 12 },
+    { count: 50, size: 1, color: 0x909090, speed: 30 },
+    { count: 14, size: 2, color: 0xd0d0d0, speed: 60 },
+  ],
   maxEnemies: 50,
   scorePerTier: 100,
   // difficulty progression: every N points or ~60s elapsed
