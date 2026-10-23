@@ -71,6 +71,13 @@ export function generateAllTextures(scene: Phaser.Scene): void {
   }
   starGfx.generateTexture('star', constants.starTileSize, constants.starTileSize);
   starGfx.destroy();
+
+  // explosion particle (white so it can be tinted)
+  const particleGfx = scene.add.graphics();
+  particleGfx.fillStyle(0xffffff);
+  particleGfx.fillRect(0, 0, 4, 4);
+  particleGfx.generateTexture('particle', 4, 4);
+  particleGfx.destroy();
 }
 
 function drawPowerUpRing(gfx: Phaser.GameObjects.Graphics, color: number): void {

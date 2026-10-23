@@ -64,4 +64,16 @@ export const constants = {
   spreadDurationMs: 8000,
   // horizontal speed of the outer spread projectiles (pixels/sec)
   spreadVelocityX: 150,
+  // explosions: particle bursts on kills and shield hits
+  explosionParticles: 14,
+  explosionSmallParticles: 6,
+  explosionSpeedMin: 60,
+  explosionSpeedMax: 200,
+  explosionLifespanMin: 300,
+  explosionLifespanMax: 500,
+  // camera shake when ramming with the shield / detonating a bomb (duration ms, intensity)
+  shieldHitShakeMs: 100,
+  shieldHitShakeIntensity: 0.005,
+  bombShakeMs: 300,
+  bombShakeIntensity: 0.012,
 };
