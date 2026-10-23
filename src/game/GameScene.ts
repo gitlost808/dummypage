@@ -38,6 +38,8 @@ export default class GameScene extends Phaser.Scene {
     this.isGameOver = false;
     this.gameOverOverlay = undefined;
     this.nextFireAt = 0;
+    // gameOver() pauses the clock, and the Clock plugin survives the restart
+    this.time.paused = false;
 
     // keyboard always works; add touch controls when touch is supported
     // (touch-capable desktops report touch too, so it can't replace the keyboard)
