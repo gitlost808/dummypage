@@ -68,12 +68,7 @@ export default class GameScene extends Phaser.Scene {
 
     // systems
     this.scoreSystem = new ScoreSystem(this);
-    this.enemySpawner = new EnemySpawner(
-      this,
-      this.player,
-      this.scoreSystem,
-      this.enemyProjectiles
-    );
+    this.enemySpawner = new EnemySpawner(this, this.player, this.enemyProjectiles);
     this.powerUps = new PowerUpSystem(this, this.player, () =>
       this.detonateBomb()
     );
