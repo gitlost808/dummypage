@@ -21,7 +21,7 @@ type EnemyProfile = {
   speed: number;
   swayAmplitude: number;
   swayFrequency: number;
-  trackStrength: number;
+  lateralSpeed: number;
   evasionScale: number;
   diveChancePerSecond: number;
   fireIntervalMs: number;
@@ -37,13 +37,13 @@ export class EnemyShip extends Ship {
   private profile: EnemyProfile = {
     kind: "normal",
     behavior: "basic",
-    speed: constants.enemyBaseSpeed,
+    speed: constants.enemySpeed[0],
     swayAmplitude: 0,
     swayFrequency: 0,
-    trackStrength: 1,
+    lateralSpeed: constants.enemyLateralSpeed[0],
     evasionScale: 1,
     diveChancePerSecond: 0,
-    fireIntervalMs: constants.enemyFireIntervalBase,
+    fireIntervalMs: 0,
   };
 
   // new evasion state
@@ -93,6 +93,10 @@ export class EnemyShip extends Ship {
     this.cancelTimers();
     this.scheduleNextEvasion();
     this.scheduleFire();
+  }
+
+  public get kind(): EnemyKind {
+    return this.profile.kind;
   }
 
   public get color(): number {
@@ -206,10 +210,7 @@ export class EnemyShip extends Ship {
     }
 
     // slow down near the target instead of overshooting, and never outrun the player
-    const maxVx = Math.min(
-      this.profile.speed * this.profile.trackStrength,
-      constants.playerSpeed * constants.enemyMaxLateralSpeedRatio
-    );
+    const maxVx = Math.min(this.profile.lateralSpeed, constants.playerSpeed * constants.enemyMaxLateralSpeedRatio);
     const desiredVx = Phaser.Math.Clamp((desiredX - this.x) * constants.enemyTrackGain, -maxVx, maxVx);
     this.steerX(desiredVx, dt);
   }

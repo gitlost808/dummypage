@@ -1,26 +1,54 @@
 import Phaser from 'phaser';
 import { EnemyShip, EnemyKind } from '../entities/EnemyShip';
 import { PlayerShip } from '../entities/PlayerShip';
-import { ScoreSystem } from './ScoreSystem';
 import { constants } from '../constants';
+
+type Range = [number, number];
+type Unlockable = { unlockAt: number; weight: Range };
+
+// interpolate an [easy, hard] range by difficulty
+function scale([easy, hard]: Range, difficulty: number): number {
+  return easy + (hard - easy) * difficulty;
+}
+
+// weighted random pick among the entries unlocked at this difficulty; each weight
+// ramps from its first value at unlock to its second at difficulty 1
+function pickWeighted<K extends string>(table: Record<K, Unlockable>, difficulty: number): K {
+  const entries = (Object.entries(table) as [K, Unlockable][])
+    .filter(([, { unlockAt }]) => difficulty >= unlockAt)
+    .map(([key, { unlockAt, weight }]) => {
+      const progress = unlockAt < 1 ? (difficulty - unlockAt) / (1 - unlockAt) : 1;
+      return [key, scale(weight, progress)] as const;
+    });
+  const total = entries.reduce((sum, [, weight]) => sum + weight, 0);
+  let roll = Math.random() * total;
+  for (const [key, weight] of entries) {
+    roll -= weight;
+    if (roll < 0) return key;
+  }
+  return entries[entries.length - 1][0];
+}
 
 export class EnemySpawner {
   private scene: Phaser.Scene;
   private player: PlayerShip;
-  private scoreSystem: ScoreSystem;
   private enemies: Phaser.Physics.Arcade.Group;
   private startTime: number;
   private enemyProjectiles: Phaser.Physics.Arcade.Group;
 
+  // threat saved up towards the next spawn
+  private threatBank = 0;
+  // picked in advance, so pricier enemies aren't crowded out by cheap ones
+  private nextKind: EnemyKind = 'normal';
+  private nextSpawnAt = 0;
+
   constructor(
     scene: Phaser.Scene,
     player: PlayerShip,
-    scoreSystem: ScoreSystem,
     enemyProjectiles: Phaser.Physics.Arcade.Group
   ) {
     this.scene = scene;
     this.player = player;
-    this.scoreSystem = scoreSystem;
     this.enemyProjectiles = enemyProjectiles;
     this.enemies = scene.physics.add.group({
       classType: EnemyShip,
@@ -28,60 +56,68 @@ export class EnemySpawner {
       runChildUpdate: true,
     });
     this.startTime = scene.time.now;
-    this.scheduleNext();
-  }
-
-  private scheduleNext(): void {
-    const tier = this.getTier();
-    const interval = Phaser.Math.Clamp(
-      constants.baseInterval - tier * constants.intervalDecrement,
-      constants.minInterval,
-      constants.baseInterval
-    );
-    this.scene.time.addEvent({
-      delay: interval,
-      callback: () => {
-        this.spawn();
-        this.scheduleNext();
-      },
+    scene.time.addEvent({
+      delay: constants.spawnTickMs,
+      loop: true,
+      callback: this.tick,
       callbackScope: this,
     });
   }
 
-  private spawn(): void {
+  // 0..1 from time survived only, so score (and bomb bonuses) can't jump it
+  public getDifficulty(): number {
+    return 1 - Math.exp(-this.elapsed() / constants.difficultyRampMs);
+  }
+
+  // multiplier on spawn budget and on-screen cap, growing slowly once the curve has levelled off
+  private getOvertime(): number {
+    return 1 + Math.max(0, this.elapsed() - constants.overtimeStartMs) / constants.overtimeMs;
+  }
+
+  private elapsed(): number {
+    return this.scene.time.now - this.startTime;
+  }
+
+  private tick(): void {
+    const difficulty = this.getDifficulty();
+    const overtime = this.getOvertime();
+    const earned = scale(constants.threatPerSecond, difficulty) * overtime * (constants.spawnTickMs / 1000);
+    this.threatBank = Math.min(this.threatBank + earned, constants.maxBankedThreat);
+
+    const cost = constants.enemyThreatCost[this.nextKind];
+    if (this.threatBank < cost || this.scene.time.now < this.nextSpawnAt) return;
+    if (this.threatOnScreen() + cost > scale(constants.maxThreatOnScreen, difficulty) * overtime) return;
+    if (!this.spawn(this.nextKind, difficulty)) return;
+
+    this.threatBank -= cost;
+    this.nextSpawnAt = this.scene.time.now + constants.minSpawnGapMs;
+    this.nextKind = pickWeighted(constants.enemyKindWeights, difficulty);
+  }
+
+  private threatOnScreen(): number {
+    return this.enemies
+      .getMatching('active', true)
+      .reduce((sum, enemy) => sum + constants.enemyThreatCost[(enemy as EnemyShip).kind], 0);
+  }
+
+  // returns false when the pool is exhausted
+  private spawn(kind: EnemyKind, difficulty: number): boolean {
     const width = this.scene.scale.width;
     const margin = Math.min(constants.enemySpawnMargin, width / 2);
     const x = Phaser.Math.Between(margin, width - margin);
-    const tier = this.getTier();
-    const behavior = this.pickBehavior(tier);
-    const kind = this.pickKind(tier);
+    const behavior = pickWeighted(constants.enemyBehaviorWeights, difficulty);
 
-    const baseSpeed = constants.enemyBaseSpeed + tier * constants.enemySpeedIncrement;
-    const speed = kind === 'tank' ? baseSpeed * constants.tankSpeedMultiplier : baseSpeed;
-    const trackStrength = Phaser.Math.Clamp(
-      constants.enemyTrackStrengthBase + tier * constants.enemyTrackStrengthIncrement,
-      0.6,
-      1.25,
-    );
-    const swayAmplitude = constants.enemySwayAmplitudeBase + tier * constants.enemySwayAmplitudeIncrement;
-    const swayFrequency = constants.enemySwayFrequencyBase + tier * constants.enemySwayFrequencyIncrement;
-    const evasionScale = 1 + tier * 0.15;
-    const diveChancePerSecond = Math.max(
-      0,
-      constants.enemyDiveChanceBase + (tier - 1) * constants.enemyDiveChanceIncrement
-    );
-    const fireIntervalMs = tier < constants.enemyFireStartTier
+    // tanks are slower in both directions
+    const speedFactor = kind === 'tank' ? constants.tankSpeedMultiplier : 1;
+    const fireIntervalMs = difficulty < constants.enemyFireStartDifficulty
       ? 0
-      : Phaser.Math.Clamp(
-          constants.enemyFireIntervalBase - tier * constants.enemyFireIntervalDecrement,
-          constants.enemyFireIntervalMin,
-          constants.enemyFireIntervalBase
-        ) * (kind === 'gunner' ? constants.gunnerFireIntervalMultiplier : 1);
+      : scale(constants.enemyFireIntervalMs, difficulty) *
+        (kind === 'gunner' ? constants.gunnerFireIntervalMultiplier : 1);
 
     // Obtain an enemy from the pool (or create if none free)
     const enemy = this.enemies.get(x, 0, 'enemy') as EnemyShip;
     if (!enemy) {
-      return;
+      return false;
     }
 
     // configure first, so the texture (and its height) is set before placing the enemy
@@ -89,73 +125,20 @@ export class EnemySpawner {
     enemy.configure({
       kind,
       behavior,
-      speed,
-      swayAmplitude,
-      swayFrequency,
-      trackStrength,
-      evasionScale,
-      diveChancePerSecond,
+      speed: scale(constants.enemySpeed, difficulty) * speedFactor,
+      lateralSpeed: scale(constants.enemyLateralSpeed, difficulty) * speedFactor,
+      swayAmplitude: scale(constants.enemySwayAmplitude, difficulty),
+      swayFrequency: scale(constants.enemySwayFrequency, difficulty),
+      evasionScale: scale(constants.enemyEvasionScale, difficulty),
+      diveChancePerSecond: scale(constants.enemyDiveChance, difficulty),
       fireIntervalMs,
     }, this.enemyProjectiles);
     // reactivate, resetting the body to just above the top edge so the enemy slides in
     enemy.enableBody(true, x, -enemy.displayHeight / 2, true, true);
+    return true;
   }
 
   public getGroup(): Phaser.Physics.Arcade.Group {
     return this.enemies;
-  }
-
-  private getTier(): number {
-    const scoreTier = Math.floor(this.scoreSystem.getScore() / constants.scorePerTier);
-    const elapsed = this.scene.time.now - this.startTime;
-    const timeTier = Math.floor(elapsed / constants.difficultyTimeStepMs);
-    return Phaser.Math.Clamp(
-      Math.max(scoreTier, timeTier),
-      0,
-      constants.maxDifficultyTier
-    );
-  }
-
-  private pickBehavior(tier: number): 'basic' | 'strafer' | 'diver' {
-    const weights = [
-      { basic: 1, strafer: 0, diver: 0 },
-      { basic: 1, strafer: 1, diver: 0 },
-      { basic: 0.8, strafer: 1, diver: 0.3 },
-      { basic: 0.6, strafer: 1, diver: 0.6 },
-      { basic: 0.4, strafer: 1, diver: 0.9 },
-      { basic: 0.25, strafer: 0.9, diver: 1 },
-      { basic: 0.15, strafer: 0.8, diver: 1 },
-    ];
-
-    const index = Phaser.Math.Clamp(tier, 0, weights.length - 1);
-    const tierWeights = weights[index];
-    const total = tierWeights.basic + tierWeights.strafer + tierWeights.diver;
-    const roll = Math.random() * total;
-
-    if (roll < tierWeights.basic) return 'basic';
-    if (roll < tierWeights.basic + tierWeights.strafer) return 'strafer';
-    return 'diver';
-  }
-
-  private pickKind(tier: number): EnemyKind {
-    // tanks from tier 2, gunners from tier 3; early game stays all normal
-    const weights = [
-      { normal: 1, tank: 0, gunner: 0 },
-      { normal: 1, tank: 0, gunner: 0 },
-      { normal: 1, tank: 0.15, gunner: 0 },
-      { normal: 1, tank: 0.2, gunner: 0.15 },
-      { normal: 1, tank: 0.25, gunner: 0.2 },
-      { normal: 1, tank: 0.3, gunner: 0.25 },
-      { normal: 1, tank: 0.35, gunner: 0.3 },
-    ];
-
-    const index = Phaser.Math.Clamp(tier, 0, weights.length - 1);
-    const tierWeights = weights[index];
-    const total = tierWeights.normal + tierWeights.tank + tierWeights.gunner;
-    const roll = Math.random() * total;
-
-    if (roll < tierWeights.normal) return 'normal';
-    if (roll < tierWeights.normal + tierWeights.tank) return 'tank';
-    return 'gunner';
   }
 }

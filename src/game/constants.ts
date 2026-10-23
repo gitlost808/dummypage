@@ -30,28 +30,46 @@ export const constants = {
     { count: 14, size: 2, color: 0xd0d0d0, speed: 60 },
   ],
   maxEnemies: 50,
-  scorePerTier: 100,
-  // difficulty progression: every N points or ~60s elapsed
-  difficultyTimeStepMs: 60000,
-  maxDifficultyTier: 6,
-  baseInterval: 2000,
-  intervalDecrement: 300,
-  minInterval: 500,
+  // difficulty: a value in 0..1 from time survived, 1 - exp(-t / ramp), so it climbs quickly at first
+  // and levels off (~0.45 at 1 min, ~0.83 at 3 min, ~0.95 at 5 min)
+  difficultyRampMs: 100000,
+  // after the curve levels off, spawn budget and on-screen cap keep growing (+100% per overtimeMs), so long runs never plateau
+  overtimeStartMs: 240000,
+  overtimeMs: 600000,
+  // the [easy, hard] ranges below are interpolated by difficulty
+  // threat budget: every enemy costs threat; budget builds up over time and pays for spawns
+  enemyThreatCost: { normal: 1, gunner: 2, tank: 3 },
+  threatPerSecond: [0.5, 3.5] as [number, number],
+  // spawns wait while the enemies on screen add up to this much threat
+  maxThreatOnScreen: [4, 14] as [number, number],
+  // unspent budget is capped (at least the priciest enemy), so a quiet moment doesn't turn into a burst
+  maxBankedThreat: 4,
+  spawnTickMs: 100,
+  minSpawnGapMs: 250,
+  // spawn weights, from the difficulty each one unlocks at: [weight when unlocked, weight at difficulty 1]
+  enemyKindWeights: {
+    normal: { unlockAt: 0, weight: [1, 1] as [number, number] },
+    tank: { unlockAt: 0.3, weight: [0.15, 0.4] as [number, number] },
+    gunner: { unlockAt: 0.45, weight: [0.15, 0.35] as [number, number] },
+  },
+  enemyBehaviorWeights: {
+    basic: { unlockAt: 0, weight: [1, 0.15] as [number, number] },
+    strafer: { unlockAt: 0.1, weight: [1, 0.8] as [number, number] },
+    diver: { unlockAt: 0.35, weight: [0.3, 1] as [number, number] },
+  },
   enemySpawnMargin: 50,
-  enemyBaseSpeed: 100,
-  enemySpeedIncrement: 50,
-  enemyFireStartTier: 1,
-  enemyFireIntervalBase: 1600,
-  enemyFireIntervalDecrement: 120,
-  enemyFireIntervalMin: 650,
-  enemyTrackStrengthBase: 0.75,
-  enemyTrackStrengthIncrement: 0.05,
-  enemySwayAmplitudeBase: 40,
-  enemySwayAmplitudeIncrement: 8,
-  enemySwayFrequencyBase: 0.002,
-  enemySwayFrequencyIncrement: 0.0004,
-  enemyDiveChanceBase: 0.1, // per second
-  enemyDiveChanceIncrement: 0.05,
+  enemySpeed: [100, 340] as [number, number],
+  // sideways tracking speed, still capped by enemyMaxLateralSpeedRatio
+  enemyLateralSpeed: [70, 230] as [number, number],
+  // enemies hold fire for the first few seconds
+  enemyFireStartDifficulty: 0.05,
+  enemyFireIntervalMs: [1600, 750] as [number, number],
+  enemySwayAmplitude: [40, 90] as [number, number],
+  enemySwayFrequency: [0.002, 0.0045] as [number, number],
+  // shortens the time between evasions and the evasions themselves
+  enemyEvasionScale: [1, 1.9] as [number, number],
+  // per second
+  enemyDiveChance: [0.1, 0.4] as [number, number],
   enemyDiveSpeedMultiplier: 1.6,
   enemyDiveDurationMin: 400,
   enemyDiveDurationMax: 900,
