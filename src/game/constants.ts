@@ -52,4 +52,16 @@ export const constants = {
   bottomMargin: 200,
   // horizontal joystick offset (px) before touch movement registers
   touchDeadZone: 12,
+  // power-ups: dropped by destroyed enemies
+  powerUpDropChance: 0.12,
+  powerUpSpeed: 120,
+  powerUpWeights: { shield: 0.45, spread: 0.4, bomb: 0.15 },
+  shieldColor: 0x2aa198,
+  spreadColor: 0x268bd2,
+  bombColor: 0xcb4b16,
+  // brief invulnerability after the shield absorbs a hit (in ms)
+  shieldInvulnerabilityMs: 1000,
+  spreadDurationMs: 8000,
+  // horizontal speed of the outer spread projectiles (pixels/sec)
+  spreadVelocityX: 150,
 };
