@@ -1,5 +1,25 @@
 import Phaser from 'phaser';
 
+const highScoreKey = 'galactic-skirmish:highScore';
+
+// storage can be unavailable (private mode, blocked site data), so never throw
+function loadHighScore(): number {
+  try {
+    const value = Number(localStorage.getItem(highScoreKey));
+    return Number.isFinite(value) && value >= 0 ? value : 0;
+  } catch {
+    return 0;
+  }
+}
+
+function saveHighScore(value: number): void {
+  try {
+    localStorage.setItem(highScoreKey, String(value));
+  } catch {
+    // ignore, the high score just won't survive a reload
+  }
+}
+
 export class ScoreSystem {
   private scene: Phaser.Scene;
   private scoreText: Phaser.GameObjects.Text;
@@ -11,7 +31,7 @@ export class ScoreSystem {
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
 
-    this.highScore = scene.registry.get('highScore') ?? 0;
+    this.highScore = Math.max(loadHighScore(), scene.registry.get('highScore') ?? 0);
 
     this.scoreText = scene.add.text(10, 10, 'Score: 0', {
       fontSize: '20px',
@@ -35,15 +55,7 @@ export class ScoreSystem {
   }
 
   private incrementScore(): void {
-    this.score++;
-    this.scoreText.setText(`Score: ${this.score}`);
-    this.scene.registry.set('score', this.score);
-
-    if (this.score > this.highScore) {
-      this.highScore = this.score;
-      this.scene.registry.set('highScore', this.highScore);
-      this.highScoreText.setText(`High Score: ${this.highScore}`);
-    }
+    this.addPoints(1);
   }
 
   public getScore(): number {
@@ -59,6 +71,7 @@ export class ScoreSystem {
       this.highScore = this.score;
       this.scene.registry.set('highScore', this.highScore);
       this.highScoreText.setText(`High Score: ${this.highScore}`);
+      saveHighScore(this.highScore);
     }
   }
 
