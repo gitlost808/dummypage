@@ -5,8 +5,17 @@ import { constants } from "../constants";
 import { EnemyProjectile } from "./EnemyProjectile";
 
 type EnemyBehavior = "basic" | "strafer" | "diver";
+// what the enemy is (movement comes from its behavior)
+export type EnemyKind = "normal" | "tank" | "gunner";
+
+const enemyKinds: Record<EnemyKind, { texture: string; color: number; hp: number; points: number }> = {
+  normal: { texture: "enemy", color: constants.enemyColor, hp: 1, points: constants.pointsPerHit },
+  tank: { texture: "enemy-tank", color: constants.tankColor, hp: constants.tankHp, points: constants.tankPoints },
+  gunner: { texture: "enemy-gunner", color: constants.gunnerColor, hp: 1, points: constants.gunnerPoints },
+};
 
 type EnemyProfile = {
+  kind: EnemyKind;
   behavior: EnemyBehavior;
   speed: number;
   swayAmplitude: number;
@@ -21,8 +30,11 @@ export class EnemyShip extends Ship {
   private target!: PlayerShip;
   private projectilePool: Phaser.Physics.Arcade.Group | null = null;
   private fireTimer?: Phaser.Time.TimerEvent;
+  private flashTimer?: Phaser.Time.TimerEvent;
+  private hp = 1;
 
   private profile: EnemyProfile = {
+    kind: "normal",
     behavior: "basic",
     speed: constants.enemyBaseSpeed,
     swayAmplitude: 0,
@@ -58,6 +70,11 @@ export class EnemyShip extends Ship {
     this.profile = profile;
     this.speed = profile.speed;
     // reset all state, since pooled enemies get reused
+    const kind = enemyKinds[profile.kind];
+    this.setTexture(kind.texture);
+    (this.body as Phaser.Physics.Arcade.Body).setSize();
+    this.clearTint();
+    this.hp = kind.hp;
     this.isDiving = false;
     this.diveEndsAt = 0;
     this.isEvading = false;
@@ -66,6 +83,29 @@ export class EnemyShip extends Ship {
     this.cancelTimers();
     this.scheduleNextEvasion();
     this.scheduleFire();
+  }
+
+  public get color(): number {
+    return enemyKinds[this.profile.kind].color;
+  }
+
+  public get points(): number {
+    return enemyKinds[this.profile.kind].points;
+  }
+
+  // apply one hit; returns true when the enemy is out of hit points
+  public damage(): boolean {
+    this.hp--;
+    if (this.hp <= 0) return true;
+
+    // flash white, then darken to show the remaining hit points
+    this.setTintFill(0xffffff);
+    if (this.flashTimer) this.flashTimer.remove(false);
+    this.flashTimer = this.scene.time.delayedCall(constants.enemyHitFlashMs, () => {
+      const v = Math.round(255 * (0.5 + (0.5 * this.hp) / enemyKinds[this.profile.kind].hp));
+      this.setTint(Phaser.Display.Color.GetColor(v, v, v));
+    });
+    return false;
   }
 
   // return to the pool; stop timers so an inactive enemy can't fire or evade
@@ -77,8 +117,10 @@ export class EnemyShip extends Ship {
   private cancelTimers(): void {
     if (this.fireTimer) this.fireTimer.remove(false);
     if (this.evasionTimer) this.evasionTimer.remove(false);
+    if (this.flashTimer) this.flashTimer.remove(false);
     this.fireTimer = undefined;
     this.evasionTimer = undefined;
+    this.flashTimer = undefined;
   }
 
   update(): void {
@@ -215,11 +257,31 @@ export class EnemyShip extends Ship {
   private fireProjectile(): void {
     if (!this.active || !this.projectilePool || !this.target) return;
 
-    const bullet = this.projectilePool.get(this.x, this.y + this.height * 0.5, 'enemy-projectile') as EnemyProjectile;
+    const y = this.y + this.height * 0.5;
+    const aimed = this.profile.kind === "gunner";
+    const bullet = this.projectilePool.get(this.x, y) as EnemyProjectile;
     if (!bullet) return;
 
-    // fire straight down (mirrors player straight up)
-    bullet.reset(this.x, this.y + this.height * 0.5, 0, constants.enemyProjectileSpeed);
+    // pooled bullets keep their last texture, so always set it (and the body size)
+    bullet.setTexture(aimed ? "enemy-projectile-aimed" : "enemy-projectile");
+    (bullet.body as Phaser.Physics.Arcade.Body).setSize();
+
+    if (!aimed) {
+      // fire straight down (mirrors player straight up)
+      bullet.reset(this.x, y, 0, constants.enemyProjectileSpeed);
+      return;
+    }
+
+    // aim at the player with some jitter; always keep a downward component
+    // so the bullet leaves through the bottom of the screen
+    const jitter = Phaser.Math.FloatBetween(-constants.gunnerAimJitter, constants.gunnerAimJitter);
+    const angle = Phaser.Math.Clamp(
+      Math.atan2(this.target.y - y, this.target.x - this.x) + jitter,
+      constants.gunnerMinAimAngle,
+      Math.PI - constants.gunnerMinAimAngle
+    );
+    const speed = constants.gunnerProjectileSpeed;
+    bullet.reset(this.x, y, Math.cos(angle) * speed, Math.sin(angle) * speed);
   }
 
   preDestroy(): void {
