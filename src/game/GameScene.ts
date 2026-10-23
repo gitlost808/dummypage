@@ -8,6 +8,7 @@ import { Starfield } from './entities/Starfield';
 import { ScoreSystem } from './systems/ScoreSystem';
 import { EnemySpawner } from './systems/EnemySpawner';
 import { PowerUpSystem } from './systems/PowerUpSystem';
+import { EffectsSystem } from './systems/EffectsSystem';
 import { KeyboardInput } from './input/KeyboardInput';
 import { TouchInput } from './input/TouchInput';
 import { CombinedInput } from './input/CombinedInput';
@@ -22,6 +23,7 @@ export default class GameScene extends Phaser.Scene {
   private scoreSystem!: ScoreSystem;
   private enemySpawner!: EnemySpawner;
   private powerUps!: PowerUpSystem;
+  private effects!: EffectsSystem;
 
   constructor() {
     super('GameScene');
@@ -61,6 +63,7 @@ export default class GameScene extends Phaser.Scene {
     this.powerUps = new PowerUpSystem(this, this.player, () =>
       this.detonateBomb()
     );
+    this.effects = new EffectsSystem(this);
 
     // collisions
     this.physics.add.overlap(
@@ -68,7 +71,10 @@ export default class GameScene extends Phaser.Scene {
       this.enemySpawner.getGroup(),
       (_player, enemy) => {
         if (!this.player.absorbHit()) return this.gameOver();
+        const { x, y } = enemy as EnemyShip;
         (enemy as EnemyShip).despawn();
+        this.effects.explode(x, y, constants.enemyColor);
+        this.effects.shake(constants.shieldHitShakeMs, constants.shieldHitShakeIntensity);
         this.scoreSystem.addPoints(constants.pointsPerHit);
       },
       undefined,
@@ -79,7 +85,9 @@ export default class GameScene extends Phaser.Scene {
       this.enemyProjectiles,
       (_player, bullet) => {
         if (!this.player.absorbHit()) return this.gameOver();
+        const { x, y } = bullet as EnemyProjectile;
         (bullet as EnemyProjectile).disableBody(true, true);
+        this.effects.explode(x, y, constants.shieldColor, constants.explosionSmallParticles);
       },
       undefined,
       this
@@ -92,6 +100,7 @@ export default class GameScene extends Phaser.Scene {
         // return both to their pools instead of destroying them
         (proj as Projectile).disableBody(true, true);
         (enemy as EnemyShip).despawn();
+        this.effects.explode(x, y, constants.enemyColor);
         this.powerUps.maybeDrop(x, y);
         this.scoreSystem.addPoints(constants.pointsPerHit);
       },
@@ -155,12 +164,17 @@ export default class GameScene extends Phaser.Scene {
   private detonateBomb(): void {
     // return everything on screen to the pools
     const enemies = this.enemySpawner.getGroup().getMatching('active', true);
-    enemies.forEach((enemy) => (enemy as EnemyShip).despawn());
+    enemies.forEach((enemy) => {
+      const { x, y } = enemy as EnemyShip;
+      (enemy as EnemyShip).despawn();
+      this.effects.explode(x, y, constants.bombColor);
+    });
     this.enemyProjectiles
       .getMatching('active', true)
       .forEach((bullet) => (bullet as EnemyProjectile).disableBody(true, true));
     this.scoreSystem.addPoints(enemies.length * constants.pointsPerHit);
     this.cameras.main.flash(250, 203, 75, 22);
+    this.effects.shake(constants.bombShakeMs, constants.bombShakeIntensity);
   }
 
   private gameOver(): void {
