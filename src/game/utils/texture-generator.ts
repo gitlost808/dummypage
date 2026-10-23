@@ -5,15 +5,19 @@ import { nebulaPixels } from './noise';
 export function generateAllTextures(scene: Phaser.Scene): void {
   const gfx = scene.add.graphics();
 
+  // 32x32 is a power of two, so WebGL wraps these textures (REPEAT) and a full-width edge
+  // bleeds onto the opposite one as a faint line (which the ship glow amplifies);
+  // keep that edge 1px inside the texture
+
   // player
   gfx.fillStyle(constants.playerColor);
-  gfx.fillTriangle(0, 32, 16, 0, 32, 32);
+  gfx.fillTriangle(0, 31, 16, 0, 32, 31);
   gfx.generateTexture('player', 32, 32);
   gfx.clear();
 
   // enemy
   gfx.fillStyle(constants.enemyColor);
-  gfx.fillTriangle(32, 0, 16, 32, 0, 0);
+  gfx.fillTriangle(32, 1, 16, 32, 0, 1);
   gfx.generateTexture('enemy', 32, 32);
   gfx.clear();
 
@@ -108,7 +112,7 @@ export function generateAllTextures(scene: Phaser.Scene): void {
 
   // gunner: enemy shape with a targeting eye
   enemyGfx.fillStyle(constants.gunnerColor);
-  enemyGfx.fillTriangle(32, 0, 16, 32, 0, 0);
+  enemyGfx.fillTriangle(32, 1, 16, 32, 0, 1);
   enemyGfx.fillStyle(0xffffff);
   enemyGfx.fillCircle(16, 9, 3);
   enemyGfx.generateTexture('enemy-gunner', 32, 32);

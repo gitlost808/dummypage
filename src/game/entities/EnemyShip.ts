@@ -57,6 +57,7 @@ export class EnemyShip extends Ship {
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
     super(scene, x, y, "enemy", 0);
+    this.addGlow(constants.enemyColor);
     this.scheduleNextEvasion();
   }
 
@@ -75,6 +76,7 @@ export class EnemyShip extends Ship {
     this.setTexture(kind.texture);
     (this.body as Phaser.Physics.Arcade.Body).setSize();
     this.clearTint();
+    if (this.glow) this.glow.color = kind.color;
     this.hp = kind.hp;
     this.isDiving = false;
     this.diveEndsAt = 0;
