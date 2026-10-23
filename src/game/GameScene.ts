@@ -27,6 +27,7 @@ export default class GameScene extends Phaser.Scene {
   private effects!: EffectsSystem;
   private gameOverOverlay?: GameOverOverlay;
   private isGameOver = false;
+  private nextFireAt = 0;
 
   constructor() {
     super('GameScene');
@@ -36,6 +37,7 @@ export default class GameScene extends Phaser.Scene {
     // scene.restart() reuses this instance, so reset per-run state
     this.isGameOver = false;
     this.gameOverOverlay = undefined;
+    this.nextFireAt = 0;
 
     // keyboard always works; add touch controls when touch is supported
     // (touch-capable desktops report touch too, so it can't replace the keyboard)
@@ -153,9 +155,12 @@ export default class GameScene extends Phaser.Scene {
     this.player.update();
     this.powerUps.update();
 
-    if (this.inputType.shoot) {
+    // fire while held; a buffered press fires as soon as the cooldown allows
+    const wantsFire = this.inputType.fire || this.inputType.firePressed;
+    if (wantsFire && this.time.now >= this.nextFireAt) {
       this.spawnProjectiles();
-      this.inputType.shoot = false;
+      this.inputType.firePressed = false;
+      this.nextFireAt = this.time.now + constants.fireCooldownMs;
     }
   }
 

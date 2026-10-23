@@ -84,4 +84,6 @@ export const constants = {
   gameOverBackdropAlpha: 0.6,
   // ignore restart input for this long after dying (in ms)
   gameOverInputDelayMs: 600,
+  // minimum time between volleys while fire is held (in ms)
+  fireCooldownMs: 180,
 };
