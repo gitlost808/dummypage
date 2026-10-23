@@ -8,10 +8,12 @@ import { Starfield } from './entities/Starfield';
 import { ScoreSystem } from './systems/ScoreSystem';
 import { EnemySpawner } from './systems/EnemySpawner';
 import { PowerUpSystem } from './systems/PowerUpSystem';
+import { EffectsSystem } from './systems/EffectsSystem';
 import { KeyboardInput } from './input/KeyboardInput';
 import { TouchInput } from './input/TouchInput';
 import { CombinedInput } from './input/CombinedInput';
 import { InputController } from './input/InputController';
+import { GameOverOverlay } from './ui/GameOverOverlay';
 
 export default class GameScene extends Phaser.Scene {
   private inputType!: CombinedInput;
@@ -22,12 +24,19 @@ export default class GameScene extends Phaser.Scene {
   private scoreSystem!: ScoreSystem;
   private enemySpawner!: EnemySpawner;
   private powerUps!: PowerUpSystem;
+  private effects!: EffectsSystem;
+  private gameOverOverlay?: GameOverOverlay;
+  private isGameOver = false;
 
   constructor() {
     super('GameScene');
   }
 
   create(): void {
+    // scene.restart() reuses this instance, so reset per-run state
+    this.isGameOver = false;
+    this.gameOverOverlay = undefined;
+
     // keyboard always works; add touch controls when touch is supported
     // (touch-capable desktops report touch too, so it can't replace the keyboard)
     const inputs: InputController[] = [new KeyboardInput(this)];
@@ -61,6 +70,7 @@ export default class GameScene extends Phaser.Scene {
     this.powerUps = new PowerUpSystem(this, this.player, () =>
       this.detonateBomb()
     );
+    this.effects = new EffectsSystem(this);
 
     // collisions
     this.physics.add.overlap(
@@ -68,7 +78,10 @@ export default class GameScene extends Phaser.Scene {
       this.enemySpawner.getGroup(),
       (_player, enemy) => {
         if (!this.player.absorbHit()) return this.gameOver();
+        const { x, y } = enemy as EnemyShip;
         (enemy as EnemyShip).despawn();
+        this.effects.explode(x, y, constants.enemyColor);
+        this.effects.shake(constants.shieldHitShakeMs, constants.shieldHitShakeIntensity);
         this.scoreSystem.addPoints(constants.pointsPerHit);
       },
       undefined,
@@ -79,7 +92,9 @@ export default class GameScene extends Phaser.Scene {
       this.enemyProjectiles,
       (_player, bullet) => {
         if (!this.player.absorbHit()) return this.gameOver();
+        const { x, y } = bullet as EnemyProjectile;
         (bullet as EnemyProjectile).disableBody(true, true);
+        this.effects.explode(x, y, constants.shieldColor, constants.explosionSmallParticles);
       },
       undefined,
       this
@@ -92,6 +107,7 @@ export default class GameScene extends Phaser.Scene {
         // return both to their pools instead of destroying them
         (proj as Projectile).disableBody(true, true);
         (enemy as EnemyShip).despawn();
+        this.effects.explode(x, y, constants.enemyColor);
         this.powerUps.maybeDrop(x, y);
         this.scoreSystem.addPoints(constants.pointsPerHit);
       },
@@ -118,6 +134,9 @@ export default class GameScene extends Phaser.Scene {
       // (and camera/world bounds if you’re using them)
       this.physics.world.setBounds(0, 0, width, height);
       this.cameras.main.setBounds(0, 0, width, height);
+
+      // keep the game-over screen centred
+      this.gameOverOverlay?.layout(width, height);
     };
 
     // the ScaleManager outlives this scene, so detach on shutdown/restart
@@ -129,6 +148,8 @@ export default class GameScene extends Phaser.Scene {
 
   update(): void {
     this.starfield.update();
+    if (this.isGameOver) return;
+
     this.player.update();
     this.powerUps.update();
 
@@ -155,15 +176,43 @@ export default class GameScene extends Phaser.Scene {
   private detonateBomb(): void {
     // return everything on screen to the pools
     const enemies = this.enemySpawner.getGroup().getMatching('active', true);
-    enemies.forEach((enemy) => (enemy as EnemyShip).despawn());
+    enemies.forEach((enemy) => {
+      const { x, y } = enemy as EnemyShip;
+      (enemy as EnemyShip).despawn();
+      this.effects.explode(x, y, constants.bombColor);
+    });
     this.enemyProjectiles
       .getMatching('active', true)
       .forEach((bullet) => (bullet as EnemyProjectile).disableBody(true, true));
     this.scoreSystem.addPoints(enemies.length * constants.pointsPerHit);
     this.cameras.main.flash(250, 203, 75, 22);
+    this.effects.shake(constants.bombShakeMs, constants.bombShakeIntensity);
   }
 
   private gameOver(): void {
-    this.scene.restart();
+    // overlap callbacks can fire repeatedly in the same frame
+    if (this.isGameOver) return;
+    this.isGameOver = true;
+
+    // freeze the action: physics, plus the clock driving spawns, firing and score
+    this.physics.pause();
+    this.time.paused = true;
+
+    // blow up the player; particles and camera effects keep running while paused
+    this.player.setVisible(false);
+    this.effects.explode(
+      this.player.x,
+      this.player.y,
+      constants.playerColor,
+      constants.explosionDeathParticles
+    );
+    this.effects.shake(constants.deathShakeMs, constants.deathShakeIntensity);
+
+    this.gameOverOverlay = new GameOverOverlay(
+      this,
+      this.scoreSystem.getScore(),
+      this.registry.get('highScore') ?? 0,
+      () => this.scene.restart()
+    );
   }
 }
