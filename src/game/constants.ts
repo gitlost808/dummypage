@@ -84,4 +84,23 @@ export const constants = {
   gameOverBackdropAlpha: 0.6,
   // ignore restart input for this long after dying (in ms)
   gameOverInputDelayMs: 600,
+  // minimum time between volleys while fire is held (in ms)
+  fireCooldownMs: 180,
+  // tank: slow, takes several hits
+  tankColor: 0xb58900,
+  tankHp: 3,
+  tankPoints: 30,
+  tankSpeedMultiplier: 0.6,
+  // gunner: fires aimed shots at the player
+  gunnerColor: 0xd33682,
+  gunnerPoints: 20,
+  gunnerProjectileSpeed: 220,
+  gunnerFireIntervalMultiplier: 1.25,
+  // random aim offset (radians)
+  gunnerAimJitter: 0.08,
+  // minimum angle below horizontal for aimed shots (radians), so they always head down
+  gunnerMinAimAngle: 0.35,
+  // white flash and spark burst when an enemy survives a hit
+  enemyHitFlashMs: 60,
+  enemyHitSparkParticles: 4,
 };

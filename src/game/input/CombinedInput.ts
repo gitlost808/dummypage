@@ -16,12 +16,16 @@ export class CombinedInput implements InputController {
     return this.inputs.some((i) => i.right);
   }
 
-  get shoot(): boolean {
-    return this.inputs.some((i) => i.shoot);
+  get fire(): boolean {
+    return this.inputs.some((i) => i.fire);
   }
 
-  set shoot(value: boolean) {
-    this.inputs.forEach((i) => (i.shoot = value));
+  get firePressed(): boolean {
+    return this.inputs.some((i) => i.firePressed);
+  }
+
+  set firePressed(value: boolean) {
+    this.inputs.forEach((i) => (i.firePressed = value));
   }
 
   update(): void {

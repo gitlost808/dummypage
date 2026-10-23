@@ -78,6 +78,40 @@ export function generateAllTextures(scene: Phaser.Scene): void {
   particleGfx.fillRect(0, 0, 4, 4);
   particleGfx.generateTexture('particle', 4, 4);
   particleGfx.destroy();
+
+  // enemy kinds
+  const enemyGfx = scene.add.graphics();
+
+  // tank: wide armoured hull
+  enemyGfx.fillStyle(constants.tankColor);
+  enemyGfx.fillPoints(
+    [
+      { x: 0, y: 0 },
+      { x: 40, y: 0 },
+      { x: 28, y: 36 },
+      { x: 12, y: 36 },
+    ],
+    true
+  );
+  enemyGfx.fillStyle(0x000000, 0.35);
+  enemyGfx.fillRect(6, 8, 28, 4);
+  enemyGfx.fillRect(10, 18, 20, 4);
+  enemyGfx.generateTexture('enemy-tank', 40, 36);
+  enemyGfx.clear();
+
+  // gunner: enemy shape with a targeting eye
+  enemyGfx.fillStyle(constants.gunnerColor);
+  enemyGfx.fillTriangle(32, 0, 16, 32, 0, 0);
+  enemyGfx.fillStyle(0xffffff);
+  enemyGfx.fillCircle(16, 9, 3);
+  enemyGfx.generateTexture('enemy-gunner', 32, 32);
+  enemyGfx.clear();
+
+  // aimed enemy projectile: round, so it needs no rotation
+  enemyGfx.fillStyle(constants.gunnerColor);
+  enemyGfx.fillCircle(4, 4, 4);
+  enemyGfx.generateTexture('enemy-projectile-aimed', 8, 8);
+  enemyGfx.destroy();
 }
 
 function drawPowerUpRing(gfx: Phaser.GameObjects.Graphics, color: number): void {

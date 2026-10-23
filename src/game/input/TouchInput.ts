@@ -5,9 +5,12 @@ import { constants } from '../constants';
 export class TouchInput implements InputController {
   public left = false;
   public right = false;
-  public shoot = false;
+  public fire = false;
+  public firePressed = false;
 
   private activePointer: Phaser.Input.Pointer | null = null;
+  // pointers held down on the shooting half (multitouch: move + shoot at once)
+  private firePointers = new Set<Phaser.Input.Pointer>();
   private originX = 0;
   private scene: Phaser.Scene;
   private originMarker?: Phaser.GameObjects.Container;
@@ -29,7 +32,7 @@ export class TouchInput implements InputController {
       color: '#ffffff',
     }).setOrigin(0.5).setDepth(6).setAlpha(0.9);
 
-    this.rightHint = scene.add.text(width * 0.75, height - 90, 'Tap here to shoot', {
+    this.rightHint = scene.add.text(width * 0.75, height - 90, 'Hold here to shoot', {
       fontSize: '16px',
       color: '#ffffff',
     }).setOrigin(0.5).setDepth(6).setAlpha(0.9);
@@ -63,8 +66,10 @@ export class TouchInput implements InputController {
       this.right = false;
       this.showOriginMarker(p.x, p.y);
     } else {
-      // Shoot tap
-      this.shoot = true;
+      // Start shooting; held until this pointer is released
+      this.firePointers.add(p);
+      this.fire = true;
+      this.firePressed = true;
     }
 
     this.fadeHints();
@@ -91,8 +96,8 @@ export class TouchInput implements InputController {
       this.left = this.right = false;
       this.hideOriginMarker();
     } else {
-      // Clear shoot after a tiny delay so update() can see it
-      this.scene.time.delayedCall(50, () => (this.shoot = false));
+      this.firePointers.delete(p);
+      this.fire = this.firePointers.size > 0;
     }
   }
 

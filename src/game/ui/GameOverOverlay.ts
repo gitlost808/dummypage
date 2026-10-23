@@ -76,8 +76,13 @@ export class GameOverOverlay extends Phaser.GameObjects.Container {
       this.restarting = true;
       onRestart();
     };
-    scene.input.keyboard.on('keydown-SPACE', restart);
-    scene.input.keyboard.on('keydown-ENTER', restart);
+    // require a fresh press: a fire key held through death auto-repeats keydown,
+    // and a finger still held down never emits another pointerdown
+    const onKey = (event: KeyboardEvent) => {
+      if (!event.repeat) restart();
+    };
+    scene.input.keyboard.on('keydown-SPACE', onKey);
+    scene.input.keyboard.on('keydown-ENTER', onKey);
     scene.input.on('pointerdown', restart);
   }
 
