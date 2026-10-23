@@ -64,4 +64,9 @@ export const constants = {
   spreadDurationMs: 8000,
   // horizontal speed of the outer spread projectiles (pixels/sec)
   spreadVelocityX: 150,
+  // game-over screen
+  gameOverColor: 0xdc322f,
+  gameOverBackdropAlpha: 0.6,
+  // ignore restart input for this long after dying (in ms)
+  gameOverInputDelayMs: 600,
 };
