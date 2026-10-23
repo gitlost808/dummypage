@@ -55,6 +55,19 @@ export const constants = {
   enemyDiveSpeedMultiplier: 1.6,
   enemyDiveDurationMin: 400,
   enemyDiveDurationMax: 900,
+  // divers hang and blink before diving, then commit to a fixed direction (in ms)
+  enemyDiveWindupMs: 400,
+  enemyDiveWindupSpeedFactor: 0.2,
+  enemyDiveBlinkMs: 70,
+  // minimum dive angle below horizontal (radians), and how far above the player a dive can start (px)
+  enemyDiveMinAngle: 0.5,
+  enemyDiveMinHeight: 120,
+  // steering: how quickly enemies reach their desired sideways velocity (per second)
+  enemySteerRate: 5,
+  // desired sideways speed per pixel of distance to the target x, so enemies ease in instead of jittering
+  enemyTrackGain: 2,
+  // sideways speed cap as a fraction of the player's speed, so the player can always outrun them
+  enemyMaxLateralSpeedRatio: 0.8,
   pointsPerHit: 10,
   // how often an enemy will start an evasion (in ms)
   evasionIntervalMin: 800,

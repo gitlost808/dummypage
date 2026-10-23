@@ -51,12 +51,18 @@ export class EnemyShip extends Ship {
   private evasionDir: -1 | 1 = 1;
   private evasionTimer?: Phaser.Time.TimerEvent;
 
-  // dive state
-  private isDiving = false;
-  private diveEndsAt = 0;
+  // dive state: a telegraphed wind-up, then a dive in a fixed direction
+  private diveState: "none" | "windup" | "diving" = "none";
+  private diveStateEndsAt = 0;
+  private blinkTimer?: Phaser.Time.TimerEvent;
+
+  // per-enemy sway offset, so strafers don't all sway in unison
+  private swayPhase = 0;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
     super(scene, x, y, "enemy", 0);
+    // enemies enter above the screen and leave below it, so only clamp x (in update)
+    this.setCollideWorldBounds(false);
     this.addGlow(constants.enemyColor);
     this.scheduleNextEvasion();
   }
@@ -78,8 +84,9 @@ export class EnemyShip extends Ship {
     this.clearTint();
     if (this.glow) this.glow.color = kind.color;
     this.hp = kind.hp;
-    this.isDiving = false;
-    this.diveEndsAt = 0;
+    this.diveState = "none";
+    this.diveStateEndsAt = 0;
+    this.swayPhase = Phaser.Math.FloatBetween(0, Math.PI * 2);
     this.isEvading = false;
     this.setVelocity(0, 0);
     this.projectilePool = projectilePool;
@@ -104,11 +111,19 @@ export class EnemyShip extends Ship {
     // flash white, then darken to show the remaining hit points
     this.setTintFill(0xffffff);
     if (this.flashTimer) this.flashTimer.remove(false);
-    this.flashTimer = this.scene.time.delayedCall(constants.enemyHitFlashMs, () => {
-      const v = Math.round(255 * (0.5 + (0.5 * this.hp) / enemyKinds[this.profile.kind].hp));
-      this.setTint(Phaser.Display.Color.GetColor(v, v, v));
-    });
+    this.flashTimer = this.scene.time.delayedCall(constants.enemyHitFlashMs, () => this.applyHpTint());
     return false;
+  }
+
+  // darken to show the remaining hit points
+  private applyHpTint(): void {
+    const maxHp = enemyKinds[this.profile.kind].hp;
+    if (this.hp >= maxHp) {
+      this.clearTint();
+      return;
+    }
+    const v = Math.round(255 * (0.5 + (0.5 * this.hp) / maxHp));
+    this.setTint(Phaser.Display.Color.GetColor(v, v, v));
   }
 
   // return to the pool; stop timers so an inactive enemy can't fire or evade
@@ -121,32 +136,38 @@ export class EnemyShip extends Ship {
     if (this.fireTimer) this.fireTimer.remove(false);
     if (this.evasionTimer) this.evasionTimer.remove(false);
     if (this.flashTimer) this.flashTimer.remove(false);
+    if (this.blinkTimer) this.blinkTimer.remove(false);
     this.fireTimer = undefined;
     this.evasionTimer = undefined;
     this.flashTimer = undefined;
+    this.blinkTimer = undefined;
   }
 
   update(): void {
     const delta = this.scene.game.loop.delta;
+    const dt = delta / 1000;
+    const now = this.scene.time.now;
 
-    // always move down
-    this.setVelocityY(this.profile.speed);
-
-    // horizontally, choose based on behavior state
-    if (this.isDiving) {
-      this.handleDive();
-    } else if (this.isEvading) {
-      this.setVelocityX(this.evasionDir * constants.evasionSpeed);
+    if (this.diveState === "windup") {
+      // hang in place while blinking, then dive
+      this.setVelocityY(this.profile.speed * constants.enemyDiveWindupSpeedFactor);
+      this.steerX(0, dt);
+      if (now >= this.diveStateEndsAt) this.startDive();
+    } else if (this.diveState === "diving") {
+      // velocity was locked in when the dive started
+      if (now >= this.diveStateEndsAt) this.diveState = "none";
     } else {
-      this.handleBehavior();
-      this.maybeStartDive(delta);
+      // always move down
+      this.setVelocityY(this.profile.speed);
+      if (this.isEvading) {
+        this.steerX(this.evasionDir * constants.evasionSpeed, dt);
+      } else {
+        this.handleBehavior(dt);
+        this.maybeStartWindup(delta);
+      }
     }
 
-
-    // exit dive when time is up
-    if (this.isDiving && this.scene.time.now >= this.diveEndsAt) {
-      this.isDiving = false;
-    }
+    this.clampToScreenWidth();
 
     // off-screen clean up
     if (this.y > this.scene.scale.height + this.height) {
@@ -154,7 +175,23 @@ export class EnemyShip extends Ship {
     }
   }
 
-  private handleBehavior(): void {
+  // ease the sideways velocity towards the desired one, so turns are smooth arcs
+  private steerX(desiredVx: number, dt: number): void {
+    const vx = (this.body as Phaser.Physics.Arcade.Body).velocity.x;
+    const t = 1 - Math.exp(-constants.enemySteerRate * dt);
+    this.setVelocityX(vx + (desiredVx - vx) * t);
+  }
+
+  // the body ignores world bounds (see constructor), so keep it on screen horizontally here
+  private clampToScreenWidth(): void {
+    const halfW = this.displayWidth / 2;
+    const maxX = this.scene.scale.width - halfW;
+    if (this.x >= halfW && this.x <= maxX) return;
+    this.x = Phaser.Math.Clamp(this.x, halfW, maxX);
+    this.setVelocityX(0);
+  }
+
+  private handleBehavior(dt: number): void {
     if (!this.target) return;
 
     const targetX = this.target.x;
@@ -164,43 +201,72 @@ export class EnemyShip extends Ship {
 
     if (this.profile.behavior === "strafer" || this.profile.behavior === "diver") {
       // add sinusoidal sway that ramps with difficulty
-      const sway = Math.sin(this.scene.time.now * freq) * this.profile.swayAmplitude;
+      const sway = Math.sin(this.scene.time.now * freq + this.swayPhase) * this.profile.swayAmplitude;
       desiredX += sway;
     }
 
-    const dirX = Math.sign(desiredX - this.x);
-    this.setVelocityX(dirX * this.profile.speed * this.profile.trackStrength);
+    // slow down near the target instead of overshooting, and never outrun the player
+    const maxVx = Math.min(
+      this.profile.speed * this.profile.trackStrength,
+      constants.playerSpeed * constants.enemyMaxLateralSpeedRatio
+    );
+    const desiredVx = Phaser.Math.Clamp((desiredX - this.x) * constants.enemyTrackGain, -maxVx, maxVx);
+    this.steerX(desiredVx, dt);
   }
 
-  private maybeStartDive(delta: number): void {
-    if (this.profile.behavior !== "diver") return;
+  private maybeStartWindup(delta: number): void {
+    if (this.profile.behavior !== "diver" || !this.target) return;
+    // only dive from on screen and well above the player, so a dive is always visible and dodgeable
+    if (this.y < 0 || this.y > this.target.y - constants.enemyDiveMinHeight) return;
 
     const chance = this.profile.diveChancePerSecond * (delta / 1000);
     if (Math.random() < chance) {
-      this.startDive();
+      this.startWindup();
     }
   }
 
-  private startDive(): void {
-    if (!this.target) return;
+  private startWindup(): void {
+    this.diveState = "windup";
+    this.diveStateEndsAt = this.scene.time.now + constants.enemyDiveWindupMs;
+    playSound(this.scene, "dive-warn");
 
-    this.isDiving = true;
+    let lit = false;
+    this.blinkTimer = this.scene.time.addEvent({
+      delay: constants.enemyDiveBlinkMs,
+      loop: true,
+      callback: () => {
+        lit = !lit;
+        if (lit) this.setTintFill(0xffffff);
+        else this.applyHpTint();
+      },
+    });
+  }
+
+  private startDive(): void {
+    if (this.blinkTimer) this.blinkTimer.remove(false);
+    this.blinkTimer = undefined;
+    this.applyHpTint();
+
+    if (!this.target) {
+      this.diveState = "none";
+      return;
+    }
+
+    this.diveState = "diving";
     const duration = Phaser.Math.Between(
       constants.enemyDiveDurationMin,
       constants.enemyDiveDurationMax
     );
-    this.diveEndsAt = this.scene.time.now + duration;
-  }
+    this.diveStateEndsAt = this.scene.time.now + duration;
 
-  private handleDive(): void {
-    if (!this.target) return;
-
-    const dx = this.target.x - this.x;
-    const dy = this.target.y - this.y;
-    const len = Math.hypot(dx, dy) || 1;
+    // aim at where the player is now, then commit: the dive no longer homes
+    const angle = Phaser.Math.Clamp(
+      Math.atan2(this.target.y - this.y, this.target.x - this.x),
+      constants.enemyDiveMinAngle,
+      Math.PI - constants.enemyDiveMinAngle
+    );
     const speed = this.profile.speed * constants.enemyDiveSpeedMultiplier;
-
-    this.setVelocity((dx / len) * speed, (dy / len) * speed);
+    this.setVelocity(Math.cos(angle) * speed, Math.sin(angle) * speed);
   }
 
   private scheduleNextEvasion(): void {
