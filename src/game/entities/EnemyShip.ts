@@ -3,6 +3,7 @@ import { Ship } from "./Ship";
 import { PlayerShip } from "./PlayerShip";
 import { constants } from "../constants";
 import { EnemyProjectile } from "./EnemyProjectile";
+import { playSound, randomDetune } from "../utils/audio";
 
 type EnemyBehavior = "basic" | "strafer" | "diver";
 // what the enemy is (movement comes from its behavior)
@@ -265,6 +266,7 @@ export class EnemyShip extends Ship {
     // pooled bullets keep their last texture, so always set it (and the body size)
     bullet.setTexture(aimed ? "enemy-projectile-aimed" : "enemy-projectile");
     (bullet.body as Phaser.Physics.Arcade.Body).setSize();
+    playSound(this.scene, "enemy-shoot", randomDetune());
 
     if (!aimed) {
       // fire straight down (mirrors player straight up)

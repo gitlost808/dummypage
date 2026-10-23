@@ -56,7 +56,10 @@ export class TouchInput implements InputController {
     scene.input.on('pointerupoutside', this.onUp, this);
   }
 
-  private onDown(p: Phaser.Input.Pointer) {
+  private onDown(p: Phaser.Input.Pointer, currentlyOver: Phaser.GameObjects.GameObject[]) {
+    // ignore taps on UI such as the mute button
+    if (currentlyOver.length > 0) return;
+
     const { width } = this.scene.scale;
     if (p.x < width / 2) {
       // Begin movement tracking

@@ -14,6 +14,8 @@ import { TouchInput } from './input/TouchInput';
 import { CombinedInput } from './input/CombinedInput';
 import { InputController } from './input/InputController';
 import { GameOverOverlay } from './ui/GameOverOverlay';
+import { MuteButton } from './ui/MuteButton';
+import { playSound, randomDetune } from './utils/audio';
 
 export default class GameScene extends Phaser.Scene {
   private inputType!: CombinedInput;
@@ -26,6 +28,7 @@ export default class GameScene extends Phaser.Scene {
   private powerUps!: PowerUpSystem;
   private effects!: EffectsSystem;
   private gameOverOverlay?: GameOverOverlay;
+  private muteButton!: MuteButton;
   private isGameOver = false;
   private nextFireAt = 0;
 
@@ -75,6 +78,7 @@ export default class GameScene extends Phaser.Scene {
       this.detonateBomb()
     );
     this.effects = new EffectsSystem(this);
+    this.muteButton = new MuteButton(this);
 
     // collisions
     this.physics.add.overlap(
@@ -88,6 +92,8 @@ export default class GameScene extends Phaser.Scene {
         ship.despawn();
         this.effects.explode(x, y, ship.color);
         this.effects.shake(constants.shieldHitShakeMs, constants.shieldHitShakeIntensity);
+        playSound(this, 'shield-hit');
+        playSound(this, 'explosion', randomDetune());
         this.scoreSystem.addPoints(ship.points);
       },
       undefined,
@@ -101,6 +107,7 @@ export default class GameScene extends Phaser.Scene {
         const { x, y } = bullet as EnemyProjectile;
         (bullet as EnemyProjectile).disableBody(true, true);
         this.effects.explode(x, y, constants.shieldColor, constants.explosionSmallParticles);
+        playSound(this, 'shield-hit');
       },
       undefined,
       this
@@ -116,10 +123,12 @@ export default class GameScene extends Phaser.Scene {
         if (!ship.damage()) {
           // survived the hit: just a few sparks
           this.effects.explode(x, y, 0xffffff, constants.enemyHitSparkParticles);
+          playSound(this, 'enemy-hit');
           return;
         }
         ship.despawn();
         this.effects.explode(x, y, ship.color);
+        playSound(this, 'explosion', randomDetune());
         this.powerUps.maybeDrop(x, y);
         this.scoreSystem.addPoints(ship.points);
       },
@@ -146,6 +155,8 @@ export default class GameScene extends Phaser.Scene {
       // (and camera/world bounds if you’re using them)
       this.physics.world.setBounds(0, 0, width, height);
       this.cameras.main.setBounds(0, 0, width, height);
+
+      this.muteButton.layout(width);
 
       // keep the game-over screen centred
       this.gameOverOverlay?.layout(width, height);
@@ -179,6 +190,7 @@ export default class GameScene extends Phaser.Scene {
       ? [-constants.spreadVelocityX, 0, constants.spreadVelocityX]
       : [0];
     for (const vx of velocities) this.spawnProjectile(vx);
+    playSound(this, 'shoot', randomDetune());
   }
 
   private spawnProjectile(vx: number): void {
@@ -204,6 +216,7 @@ export default class GameScene extends Phaser.Scene {
     this.scoreSystem.addPoints(points);
     this.cameras.main.flash(250, 203, 75, 22);
     this.effects.shake(constants.bombShakeMs, constants.bombShakeIntensity);
+    playSound(this, 'big-explosion');
   }
 
   private gameOver(): void {
@@ -224,6 +237,8 @@ export default class GameScene extends Phaser.Scene {
       constants.explosionDeathParticles
     );
     this.effects.shake(constants.deathShakeMs, constants.deathShakeIntensity);
+    playSound(this, 'big-explosion');
+    playSound(this, 'game-over');
 
     this.gameOverOverlay = new GameOverOverlay(
       this,
