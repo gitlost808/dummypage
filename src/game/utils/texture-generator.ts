@@ -26,6 +26,36 @@ export function generateAllTextures(scene: Phaser.Scene): void {
   gfx.fillStyle(constants.enemyProjectileColor);
   gfx.fillRect(0, 0, 4, 12);
   gfx.generateTexture('enemy-projectile', 4, 12);
+  gfx.clear();
+
+  // power-up: shield
+  drawPowerUpRing(gfx, constants.shieldColor);
+  gfx.fillPoints(
+    [
+      { x: 7, y: 7 },
+      { x: 17, y: 7 },
+      { x: 17, y: 12 },
+      { x: 12, y: 18 },
+      { x: 7, y: 12 },
+    ],
+    true
+  );
+  gfx.generateTexture('powerup-shield', 24, 24);
+  gfx.clear();
+
+  // power-up: spread
+  drawPowerUpRing(gfx, constants.spreadColor);
+  gfx.lineBetween(12, 18, 12, 6);
+  gfx.lineBetween(12, 18, 7, 8);
+  gfx.lineBetween(12, 18, 17, 8);
+  gfx.generateTexture('powerup-spread', 24, 24);
+  gfx.clear();
+
+  // power-up: bomb
+  drawPowerUpRing(gfx, constants.bombColor);
+  gfx.fillCircle(12, 13, 5);
+  gfx.lineBetween(12, 8, 15, 5);
+  gfx.generateTexture('powerup-bomb', 24, 24);
   gfx.destroy();
 
   // starfield
@@ -41,4 +71,10 @@ export function generateAllTextures(scene: Phaser.Scene): void {
   }
   starGfx.generateTexture('star', constants.starTileSize, constants.starTileSize);
   starGfx.destroy();
+}
+
+function drawPowerUpRing(gfx: Phaser.GameObjects.Graphics, color: number): void {
+  gfx.lineStyle(2, color);
+  gfx.strokeCircle(12, 12, 11);
+  gfx.fillStyle(color);
 }
