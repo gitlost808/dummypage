@@ -80,11 +80,13 @@ export default class GameScene extends Phaser.Scene {
       this.enemySpawner.getGroup(),
       (_player, enemy) => {
         if (!this.player.absorbHit()) return this.gameOver();
-        const { x, y } = enemy as EnemyShip;
-        (enemy as EnemyShip).despawn();
-        this.effects.explode(x, y, constants.enemyColor);
+        // ramming with the shield kills outright, whatever the enemy's hit points
+        const ship = enemy as EnemyShip;
+        const { x, y } = ship;
+        ship.despawn();
+        this.effects.explode(x, y, ship.color);
         this.effects.shake(constants.shieldHitShakeMs, constants.shieldHitShakeIntensity);
-        this.scoreSystem.addPoints(constants.pointsPerHit);
+        this.scoreSystem.addPoints(ship.points);
       },
       undefined,
       this
@@ -105,13 +107,19 @@ export default class GameScene extends Phaser.Scene {
       this.projectiles,
       this.enemySpawner.getGroup(),
       (proj, enemy) => {
-        const { x, y } = enemy as EnemyShip;
-        // return both to their pools instead of destroying them
+        const ship = enemy as EnemyShip;
+        const { x, y } = ship;
+        // return the projectile to its pool instead of destroying it
         (proj as Projectile).disableBody(true, true);
-        (enemy as EnemyShip).despawn();
-        this.effects.explode(x, y, constants.enemyColor);
+        if (!ship.damage()) {
+          // survived the hit: just a few sparks
+          this.effects.explode(x, y, 0xffffff, constants.enemyHitSparkParticles);
+          return;
+        }
+        ship.despawn();
+        this.effects.explode(x, y, ship.color);
         this.powerUps.maybeDrop(x, y);
-        this.scoreSystem.addPoints(constants.pointsPerHit);
+        this.scoreSystem.addPoints(ship.points);
       },
       undefined,
       this
@@ -179,17 +187,19 @@ export default class GameScene extends Phaser.Scene {
   }
 
   private detonateBomb(): void {
-    // return everything on screen to the pools
-    const enemies = this.enemySpawner.getGroup().getMatching('active', true);
-    enemies.forEach((enemy) => {
-      const { x, y } = enemy as EnemyShip;
-      (enemy as EnemyShip).despawn();
+    // return everything on screen to the pools; bombs ignore hit points
+    let points = 0;
+    this.enemySpawner.getGroup().getMatching('active', true).forEach((enemy) => {
+      const ship = enemy as EnemyShip;
+      const { x, y } = ship;
+      points += ship.points;
+      ship.despawn();
       this.effects.explode(x, y, constants.bombColor);
     });
     this.enemyProjectiles
       .getMatching('active', true)
       .forEach((bullet) => (bullet as EnemyProjectile).disableBody(true, true));
-    this.scoreSystem.addPoints(enemies.length * constants.pointsPerHit);
+    this.scoreSystem.addPoints(points);
     this.cameras.main.flash(250, 203, 75, 22);
     this.effects.shake(constants.bombShakeMs, constants.bombShakeIntensity);
   }

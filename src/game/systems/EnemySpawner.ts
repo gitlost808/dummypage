@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { EnemyShip } from '../entities/EnemyShip';
+import { EnemyShip, EnemyKind } from '../entities/EnemyShip';
 import { PlayerShip } from '../entities/PlayerShip';
 import { ScoreSystem } from './ScoreSystem';
 import { constants } from '../constants';
@@ -54,8 +54,10 @@ export class EnemySpawner {
     const x = Phaser.Math.Between(margin, width - margin);
     const tier = this.getTier();
     const behavior = this.pickBehavior(tier);
+    const kind = this.pickKind(tier);
 
-    const speed = constants.enemyBaseSpeed + tier * constants.enemySpeedIncrement;
+    const baseSpeed = constants.enemyBaseSpeed + tier * constants.enemySpeedIncrement;
+    const speed = kind === 'tank' ? baseSpeed * constants.tankSpeedMultiplier : baseSpeed;
     const trackStrength = Phaser.Math.Clamp(
       constants.enemyTrackStrengthBase + tier * constants.enemyTrackStrengthIncrement,
       0.6,
@@ -74,7 +76,7 @@ export class EnemySpawner {
           constants.enemyFireIntervalBase - tier * constants.enemyFireIntervalDecrement,
           constants.enemyFireIntervalMin,
           constants.enemyFireIntervalBase
-        );
+        ) * (kind === 'gunner' ? constants.gunnerFireIntervalMultiplier : 1);
 
     // Obtain an enemy from the pool (or create if none free)
     const enemy = this.enemies.get(x, 0, 'enemy') as EnemyShip;
@@ -86,6 +88,7 @@ export class EnemySpawner {
     enemy.enableBody(true, x, 0, true, true);
     enemy.setTarget(this.player);
     enemy.configure({
+      kind,
       behavior,
       speed,
       swayAmplitude,
@@ -131,5 +134,27 @@ export class EnemySpawner {
     if (roll < tierWeights.basic) return 'basic';
     if (roll < tierWeights.basic + tierWeights.strafer) return 'strafer';
     return 'diver';
+  }
+
+  private pickKind(tier: number): EnemyKind {
+    // tanks from tier 2, gunners from tier 3; early game stays all normal
+    const weights = [
+      { normal: 1, tank: 0, gunner: 0 },
+      { normal: 1, tank: 0, gunner: 0 },
+      { normal: 1, tank: 0.15, gunner: 0 },
+      { normal: 1, tank: 0.2, gunner: 0.15 },
+      { normal: 1, tank: 0.25, gunner: 0.2 },
+      { normal: 1, tank: 0.3, gunner: 0.25 },
+      { normal: 1, tank: 0.35, gunner: 0.3 },
+    ];
+
+    const index = Phaser.Math.Clamp(tier, 0, weights.length - 1);
+    const tierWeights = weights[index];
+    const total = tierWeights.normal + tierWeights.tank + tierWeights.gunner;
+    const roll = Math.random() * total;
+
+    if (roll < tierWeights.normal) return 'normal';
+    if (roll < tierWeights.normal + tierWeights.tank) return 'tank';
+    return 'gunner';
   }
 }
