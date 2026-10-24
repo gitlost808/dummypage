@@ -191,6 +191,8 @@ export default class GameScene extends Phaser.Scene {
       .lineStyle(2, constants.playfieldBorderColor, constants.playfieldBorderAlpha)
       .lineBetween(0, top, 0, bottom)
       .lineBetween(constants.width, top, constants.width, bottom);
+
+    this.gameOverOverlay?.fitBackdrop(width / zoom, height / zoom);
   }
 
   update(): void {

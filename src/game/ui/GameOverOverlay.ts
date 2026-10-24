@@ -56,7 +56,9 @@ export class GameOverOverlay extends Phaser.GameObjects.Container {
       this.highScoreText,
       this.prompt,
     ]);
-    this.layout(constants.width, constants.height);
+    this.layout();
+    const camera = scene.cameras.main;
+    this.fitBackdrop(camera.width / camera.zoom, camera.height / camera.zoom);
 
     // fade in; tweens run even while the scene clock is paused
     this.setAlpha(0);
@@ -92,10 +94,20 @@ export class GameOverOverlay extends Phaser.GameObjects.Container {
     );
   }
 
-  private layout(width: number, height: number): void {
-    const cx = width / 2;
-    const cy = height / 2;
-    this.backdrop.setSize(width, height);
+  // cover the whole window, not just the playfield, so the bars around it on tall or wide screens
+  // are dimmed too. The view is in playfield units, centred on the playfield (see GameScene.fitCamera);
+  // a little extra on each side keeps the edges hidden while the death shake moves the camera
+  public fitBackdrop(viewWidth: number, viewHeight: number): void {
+    const width = viewWidth * 1.1;
+    const height = viewHeight * 1.1;
+    this.backdrop
+      .setPosition((constants.width - width) / 2, (constants.height - height) / 2)
+      .setSize(width, height);
+  }
+
+  private layout(): void {
+    const cx = constants.width / 2;
+    const cy = constants.height / 2;
     this.title.setPosition(cx, cy - 70);
     this.scoreText.setPosition(cx, cy - 10);
     this.highScoreText.setPosition(cx, cy + 25);
