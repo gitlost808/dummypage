@@ -4,7 +4,6 @@ import { PlayerShip } from './entities/PlayerShip';
 import { Projectile } from './entities/Projectile';
 import { EnemyProjectile } from './entities/EnemyProjectile';
 import { EnemyShip } from './entities/EnemyShip';
-import { Starfield } from './entities/Starfield';
 import { ScoreSystem } from './systems/ScoreSystem';
 import { EnemySpawner } from './systems/EnemySpawner';
 import { PowerUpSystem } from './systems/PowerUpSystem';
@@ -23,7 +22,6 @@ export default class GameScene extends Phaser.Scene {
   private player!: PlayerShip;
   private projectiles!: Phaser.Physics.Arcade.Group;
   private enemyProjectiles!: Phaser.Physics.Arcade.Group;
-  private starfield!: Starfield;
   private scoreSystem!: ScoreSystem;
   private enemySpawner!: EnemySpawner;
   private powerUps!: PowerUpSystem;
@@ -31,6 +29,8 @@ export default class GameScene extends Phaser.Scene {
   private gameOverOverlay?: GameOverOverlay;
   private muteButton!: MuteButton;
   private waveBanner!: WaveBanner;
+  // screen-space mask that clips the camera to the playfield (see fitCamera)
+  private playfieldMask!: Phaser.GameObjects.Graphics;
   private isGameOver = false;
   private nextFireAt = 0;
 
@@ -46,6 +46,17 @@ export default class GameScene extends Phaser.Scene {
     // gameOver() pauses the clock, and the Clock plugin survives the restart
     this.time.paused = false;
 
+    // the playfield has a fixed size; the camera scales it to fit the window (see fitCamera)
+    this.playfieldMask = this.make.graphics({}, false);
+    this.cameras.main.setMask(this.playfieldMask.createGeometryMask());
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.playfieldMask.destroy());
+    this.fitCamera(this.scale.width, this.scale.height);
+    this.physics.world.setBounds(0, 0, constants.width, constants.height);
+    this.add
+      .rectangle(0, 0, constants.width, constants.height)
+      .setOrigin(0)
+      .setStrokeStyle(2, constants.playfieldBorderColor, constants.playfieldBorderAlpha);
+
     // keyboard always works; add touch controls when touch is supported
     // (touch-capable desktops report touch too, so it can't replace the keyboard)
     const inputs: InputController[] = [new KeyboardInput(this)];
@@ -57,11 +68,8 @@ export default class GameScene extends Phaser.Scene {
     }
     this.inputType = new CombinedInput(inputs);
 
-    // visuals
-    this.starfield = new Starfield(this);
-
-    const startX = this.scale.width / 2;
-    const startY = this.scale.height - constants.bottomMargin;
+    const startX = constants.width / 2;
+    const startY = constants.height - constants.bottomMargin;
     this.player = new PlayerShip(this, startX, startY, this.inputType);
 
     // projectile pool
@@ -136,32 +144,8 @@ export default class GameScene extends Phaser.Scene {
       this
     );
     
-    const onResize = (gameSize: Phaser.Structs.Size) => {
-      const { width, height } = gameSize;
-
-      // resize starfield
-      this.starfield.setSize(width, height);
-
-      // move score
-      this.scoreSystem.setPosition(10, 10);
-
-      // keep the player's x (clamped to the new width), only move y
-      const halfW = this.player.displayWidth / 2;
-      this.player.setPosition(
-        Phaser.Math.Clamp(this.player.x, halfW, width - halfW),
-        height - constants.bottomMargin
-      );
-
-      // (and camera/world bounds if you’re using them)
-      this.physics.world.setBounds(0, 0, width, height);
-      this.cameras.main.setBounds(0, 0, width, height);
-
-      this.muteButton.layout(width);
-      this.waveBanner.layout(width, height);
-
-      // keep the game-over screen centred
-      this.gameOverOverlay?.layout(width, height);
-    };
+    // everything lives in playfield coordinates, so a resize only refits the camera
+    const onResize = (gameSize: Phaser.Structs.Size) => this.fitCamera(gameSize.width, gameSize.height);
 
     // the ScaleManager outlives this scene, so detach on shutdown/restart
     this.scale.on('resize', onResize, this);
@@ -170,8 +154,25 @@ export default class GameScene extends Phaser.Scene {
     });
   }
 
+  // scale the playfield to fit the window and centre it. The camera has to cover the whole canvas
+  // (preFX glows are clipped away when its viewport is offset), so a mask clips anything outside
+  // the playfield instead, such as enemies entering and bullets leaving
+  private fitCamera(width: number, height: number): void {
+    const zoom = Math.min(width / constants.width, height / constants.height);
+    this.cameras.main
+      .setViewport(0, 0, width, height)
+      .setZoom(zoom)
+      .centerOn(constants.width / 2, constants.height / 2);
+
+    const viewWidth = constants.width * zoom;
+    const viewHeight = constants.height * zoom;
+    this.playfieldMask
+      .clear()
+      .fillStyle(0xffffff)
+      .fillRect((width - viewWidth) / 2, (height - viewHeight) / 2, viewWidth, viewHeight);
+  }
+
   update(): void {
-    this.starfield.update();
     if (this.isGameOver) return;
 
     this.player.update();

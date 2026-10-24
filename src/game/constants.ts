@@ -1,6 +1,10 @@
 export const constants = {
-  width: 800,
-  height: 600,
+  // the playfield: a fixed size, scaled to fit the window, so the game plays the same on every screen
+  width: 540,
+  height: 960,
+  // faint outline around the playfield, so it's clear where it ends on wide screens
+  playfieldBorderColor: 0x268bd2,
+  playfieldBorderAlpha: 0.35,
   playerSpeed: 300,
   playerDrag: 600,
   projectileSpeed: 500,

@@ -124,7 +124,7 @@ export class EnemySpawner {
 
   // returns false when the pool is exhausted
   private spawn(kind: EnemyKind, difficulty: number): boolean {
-    const width = this.scene.scale.width;
+    const width = constants.width;
     const margin = Math.min(constants.enemySpawnMargin, width / 2);
     const x = Phaser.Math.Between(margin, width - margin);
     const behavior = this.pickBehavior(kind, difficulty);

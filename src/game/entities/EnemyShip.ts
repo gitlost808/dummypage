@@ -99,7 +99,7 @@ export class EnemyShip extends Ship {
     this.driftVx = profile.kind === "tank"
       ? 0
       : Phaser.Math.FloatBetween(-constants.enemyDriftSpeed, constants.enemyDriftSpeed);
-    this.hoverY = Phaser.Math.FloatBetween(constants.gunnerHoverYMin, constants.gunnerHoverYMax) * this.scene.scale.height;
+    this.hoverY = Phaser.Math.FloatBetween(constants.gunnerHoverYMin, constants.gunnerHoverYMax) * constants.height;
     this.hoverEndsAt = 0;
     this.isLeaving = false;
     this.isEvading = false;
@@ -186,10 +186,10 @@ export class EnemyShip extends Ship {
       }
     }
 
-    this.clampToScreenWidth();
+    this.clampToPlayfieldWidth();
 
     // off-screen clean up: below the screen, or above it once a gunner has left
-    if (this.y > this.scene.scale.height + this.height || (this.isLeaving && this.y < -this.height)) {
+    if (this.y > constants.height + this.height || (this.isLeaving && this.y < -this.height)) {
       this.despawn();
     }
   }
@@ -209,10 +209,10 @@ export class EnemyShip extends Ship {
     return current + (desired - current) * (1 - Math.exp(-constants.enemySteerRate * dt));
   }
 
-  // the body ignores world bounds (see constructor), so keep it on screen horizontally here
-  private clampToScreenWidth(): void {
+  // the body ignores world bounds (see constructor), so keep it in the playfield horizontally here
+  private clampToPlayfieldWidth(): void {
     const halfW = this.displayWidth / 2;
-    const maxX = this.scene.scale.width - halfW;
+    const maxX = constants.width - halfW;
     if (this.x >= halfW && this.x <= maxX) return;
     // drifters bounce off the edge instead of sliding along it
     this.driftVx = this.x < halfW ? Math.abs(this.driftVx) : -Math.abs(this.driftVx);
@@ -253,7 +253,7 @@ export class EnemyShip extends Ship {
     let desiredX: number;
     if (this.profile.behavior === "hover") {
       // patrol back and forth across the screen
-      const width = this.scene.scale.width;
+      const width = constants.width;
       const patrol = Math.sin(this.scene.time.now * constants.gunnerPatrolFrequency + this.swayPhase);
       desiredX = width / 2 + patrol * width * constants.gunnerPatrolSpread;
     } else {

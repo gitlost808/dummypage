@@ -75,11 +75,6 @@ export class ScoreSystem {
     }
   }
 
-  public setPosition(x: number, y: number): void {
-    this.scoreText.setPosition(x, y);
-    this.highScoreText.setPosition(x, y + 30);
-  }
-
   public get text(): Phaser.GameObjects.Text {
     return this.scoreText;
   }

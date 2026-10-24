@@ -10,17 +10,13 @@ export class MuteButton extends Phaser.GameObjects.Graphics {
     super(scene);
     scene.add.existing(this);
     // above the game-over overlay, so sound can be toggled there too
-    this.setDepth(150).setScrollFactor(0);
+    this.setDepth(150);
     this.setInteractive(new Phaser.Geom.Rectangle(-4, -4, size + 8, size + 8), Phaser.Geom.Rectangle.Contains);
     this.on('pointerdown', () => this.toggle());
     scene.input.keyboard.on('keydown-M', () => this.toggle());
 
-    this.layout(scene.scale.width);
+    this.setPosition(constants.width - size - constants.muteButtonMargin, constants.muteButtonMargin);
     this.draw();
-  }
-
-  layout(width: number): void {
-    this.setPosition(width - size - constants.muteButtonMargin, constants.muteButtonMargin);
   }
 
   private toggle(): void {
