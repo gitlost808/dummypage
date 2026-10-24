@@ -31,6 +31,7 @@ export class Projectile extends Phaser.Physics.Arcade.Sprite {
 
   update(): void {
     this.setVelocityY(-this.speed);
-    if (this.y < -this.height) this.disableBody(true, true);
+    // spread shots leave through the sides; nothing clips the playfield, so recycle them there
+    if (this.y < -this.height || this.x < 0 || this.x > constants.width) this.disableBody(true, true);
   }
 }
