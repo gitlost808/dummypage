@@ -29,8 +29,6 @@ export default class GameScene extends Phaser.Scene {
   private gameOverOverlay?: GameOverOverlay;
   private muteButton!: MuteButton;
   private waveBanner!: WaveBanner;
-  // screen-space mask that clips the camera to the playfield (see fitCamera)
-  private playfieldMask!: Phaser.GameObjects.Graphics;
   private isGameOver = false;
   private nextFireAt = 0;
 
@@ -47,9 +45,6 @@ export default class GameScene extends Phaser.Scene {
     this.time.paused = false;
 
     // the playfield has a fixed size; the camera scales it to fit the window (see fitCamera)
-    this.playfieldMask = this.make.graphics({}, false);
-    this.cameras.main.setMask(this.playfieldMask.createGeometryMask());
-    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.playfieldMask.destroy());
     this.fitCamera(this.scale.width, this.scale.height);
     this.physics.world.setBounds(0, 0, constants.width, constants.height);
     this.add
@@ -154,22 +149,15 @@ export default class GameScene extends Phaser.Scene {
     });
   }
 
-  // scale the playfield to fit the window and centre it. The camera has to cover the whole canvas
-  // (preFX glows are clipped away when its viewport is offset), so a mask clips anything outside
-  // the playfield instead, such as enemies entering and bullets leaving
+  // scale the playfield to fit the window and centre it. The camera covers the whole canvas:
+  // preFX glows get clipped away when its viewport is offset, and a camera mask hid the whole
+  // playfield on some phones. Nothing clips the playfield, so objects that leave it despawn instead
   private fitCamera(width: number, height: number): void {
     const zoom = Math.min(width / constants.width, height / constants.height);
     this.cameras.main
       .setViewport(0, 0, width, height)
       .setZoom(zoom)
       .centerOn(constants.width / 2, constants.height / 2);
-
-    const viewWidth = constants.width * zoom;
-    const viewHeight = constants.height * zoom;
-    this.playfieldMask
-      .clear()
-      .fillStyle(0xffffff)
-      .fillRect((width - viewWidth) / 2, (height - viewHeight) / 2, viewWidth, viewHeight);
   }
 
   update(): void {
