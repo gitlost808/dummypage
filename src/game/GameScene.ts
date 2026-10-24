@@ -29,6 +29,8 @@ export default class GameScene extends Phaser.Scene {
   private gameOverOverlay?: GameOverOverlay;
   private muteButton!: MuteButton;
   private waveBanner!: WaveBanner;
+  // left and right edges of the playfield, redrawn on resize (see fitCamera)
+  private playfieldBorder!: Phaser.GameObjects.Graphics;
   private isGameOver = false;
   private nextFireAt = 0;
 
@@ -45,12 +47,9 @@ export default class GameScene extends Phaser.Scene {
     this.time.paused = false;
 
     // the playfield has a fixed size; the camera scales it to fit the window (see fitCamera)
+    this.playfieldBorder = this.add.graphics();
     this.fitCamera(this.scale.width, this.scale.height);
     this.physics.world.setBounds(0, 0, constants.width, constants.height);
-    this.add
-      .rectangle(0, 0, constants.width, constants.height)
-      .setOrigin(0)
-      .setStrokeStyle(2, constants.playfieldBorderColor, constants.playfieldBorderAlpha);
 
     // keyboard always works; add touch controls when touch is supported
     // (touch-capable desktops report touch too, so it can't replace the keyboard)
@@ -158,6 +157,17 @@ export default class GameScene extends Phaser.Scene {
       .setViewport(0, 0, width, height)
       .setZoom(zoom)
       .centerOn(constants.width / 2, constants.height / 2);
+
+    // only the sides get a border, running the full height of the window (through any bars above
+    // and below the playfield), since enemies enter at the top and bullets leave at the bottom
+    const halfViewHeight = height / zoom / 2;
+    const top = constants.height / 2 - halfViewHeight;
+    const bottom = constants.height / 2 + halfViewHeight;
+    this.playfieldBorder
+      .clear()
+      .lineStyle(2, constants.playfieldBorderColor, constants.playfieldBorderAlpha)
+      .lineBetween(0, top, 0, bottom)
+      .lineBetween(constants.width, top, constants.width, bottom);
   }
 
   update(): void {
