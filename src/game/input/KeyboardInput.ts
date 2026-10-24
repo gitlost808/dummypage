@@ -5,6 +5,9 @@ export class KeyboardInput implements InputController {
   private cursors: Phaser.Types.Input.Keyboard.CursorKeys;
   public left = false;
   public right = false;
+  // keys never drag
+  public readonly dragging = false;
+  public dragX = 0;
   public fire = false;
   public firePressed = false;
 

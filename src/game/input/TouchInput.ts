@@ -2,46 +2,39 @@ import Phaser from 'phaser';
 import { InputController } from './InputController';
 import { constants } from '../constants';
 
+// a finger anywhere on the screen fires, and dragging it moves the ship by the same distance
+// (relative, so the finger never has to cover the ship)
 export class TouchInput implements InputController {
-  public left = false;
-  public right = false;
+  // touch steers by dragging only
+  public readonly left = false;
+  public readonly right = false;
+  public dragging = false;
+  public dragX = 0;
   public fire = false;
   public firePressed = false;
 
-  private activePointer: Phaser.Input.Pointer | null = null;
-  // pointers held down on the shooting half (multitouch: move + shoot at once)
-  private firePointers = new Set<Phaser.Input.Pointer>();
-  private originX = 0;
+  // every finger that is down; the newest one steers
+  private pointers: Phaser.Input.Pointer[] = [];
+  // playfield x of the steering finger when its travel was last counted
+  private lastX = 0;
   private scene: Phaser.Scene;
-  private originMarker?: Phaser.GameObjects.Container;
-  private originHandle?: Phaser.GameObjects.Arc;
-  private hintText: Phaser.GameObjects.Text;
-  private leftHint: Phaser.GameObjects.Text;
-  private rightHint: Phaser.GameObjects.Text;
-  private divider: Phaser.GameObjects.Rectangle;
+  private hints: Phaser.GameObjects.Text[];
   private hintShown = true;
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
 
-    // visual guidance for touch controls, in playfield coordinates (the playfield is centred,
-    // so its middle is also the middle of the screen, where the touch zones split)
     const { width, height } = constants;
-    this.divider = scene.add.rectangle(width / 2, height / 2, 2, height, 0xffffff, 0.12).setDepth(5);
-    this.leftHint = scene.add.text(width * 0.25, height - 90, 'Swipe here to move', {
-      fontSize: '16px',
-      color: '#ffffff',
-    }).setOrigin(0.5).setDepth(6).setAlpha(0.9);
-
-    this.rightHint = scene.add.text(width * 0.75, height - 90, 'Hold here to shoot', {
-      fontSize: '16px',
-      color: '#ffffff',
-    }).setOrigin(0.5).setDepth(6).setAlpha(0.9);
-
-    this.hintText = scene.add.text(width / 2, height - 50, 'Touch controls: left = move, right = shoot', {
-      fontSize: '14px',
-      color: '#cccccc',
-    }).setOrigin(0.5).setDepth(6).setAlpha(0.85);
+    this.hints = [
+      scene.add.text(width / 2, height - 90, 'Touch and drag to move', {
+        fontSize: '16px',
+        color: '#ffffff',
+      }).setOrigin(0.5).setDepth(6).setAlpha(0.9),
+      scene.add.text(width / 2, height - 60, 'Your ship fires while you hold', {
+        fontSize: '14px',
+        color: '#cccccc',
+      }).setOrigin(0.5).setDepth(6).setAlpha(0.85),
+    ];
 
     scene.input.on('pointerdown', this.onDown, this);
     scene.input.on('pointermove', this.onMove, this);
@@ -53,92 +46,54 @@ export class TouchInput implements InputController {
     // ignore taps on UI such as the mute button
     if (currentlyOver.length > 0) return;
 
-    // the touch zones split the whole screen, not just the playfield
-    const { width } = this.scene.scale;
-    if (p.x < width / 2) {
-      // Begin movement tracking
-      this.activePointer = p;
-      this.originX = p.x;
-      this.left = false;
-      this.right = false;
-      const point = this.toPlayfield(p);
-      this.showOriginMarker(point.x, point.y);
-    } else {
-      // Start shooting; held until this pointer is released
-      this.firePointers.add(p);
-      this.fire = true;
-      this.firePressed = true;
-    }
-
+    this.pointers.push(p);
+    this.steerWith(p);
+    this.dragging = this.fire = true;
+    this.firePressed = true;
     this.fadeHints();
   }
 
   private onMove(p: Phaser.Input.Pointer) {
-    if (p === this.activePointer) {
-      // Direction comes from the offset to the touch-down origin (joystick centre)
-      const offset = p.x - this.originX;
-      this.left = offset < -constants.touchDeadZone;
-      this.right = offset > constants.touchDeadZone;
-
-      if (this.originMarker && this.originHandle) {
-        const point = this.toPlayfield(p);
-        const dx = Phaser.Math.Clamp(point.x - this.originMarker.x, -36, 36);
-        const dy = Phaser.Math.Clamp(point.y - this.originMarker.y, -36, 36);
-        this.originHandle.setPosition(dx, dy);
-      }
-    }
+    if (p !== this.steering) return;
+    const x = this.toPlayfieldX(p);
+    this.dragX += (x - this.lastX) * constants.touchDragSensitivity;
+    this.lastX = x;
   }
 
   private onUp(p: Phaser.Input.Pointer) {
-    if (p === this.activePointer) {
-      this.activePointer = null;
-      this.left = this.right = false;
-      this.hideOriginMarker();
-    } else {
-      this.firePointers.delete(p);
-      this.fire = this.firePointers.size > 0;
-    }
+    const index = this.pointers.indexOf(p);
+    if (index === -1) return;
+    const wasSteering = p === this.steering;
+    this.pointers.splice(index, 1);
+
+    const next = this.steering;
+    if (wasSteering && next) this.steerWith(next);
+    this.dragging = this.fire = next !== undefined;
   }
 
   update(): void {
     // all state is event-driven
   }
 
-  private showOriginMarker(x: number, y: number): void {
-    if (!this.originMarker) {
-      const outer = this.scene.add.circle(0, 0, 30, 0xffffff, 0.12).setStrokeStyle(2, 0xffffff, 0.5);
-      const inner = this.scene.add.circle(0, 0, 6, 0xffffff, 0.8);
-      const handle = this.scene.add.circle(0, 0, 10, 0xffffff, 0.7);
-      this.originMarker = this.scene.add.container(x, y, [outer, inner, handle]).setDepth(15);
-      this.originHandle = handle;
-    } else {
-      this.originMarker.setPosition(x, y);
-      this.originHandle?.setPosition(0, 0);
-    }
-    this.originMarker.setVisible(true);
-    this.originMarker.setAlpha(1);
+  private get steering(): Phaser.Input.Pointer | undefined {
+    return this.pointers[this.pointers.length - 1];
   }
 
-  private hideOriginMarker(): void {
-    if (!this.originMarker) return;
-    this.scene.tweens.add({
-      targets: this.originMarker,
-      alpha: 0,
-      duration: 200,
-      onComplete: () => this.originMarker?.setVisible(false),
-    });
+  // count travel from where this finger is now, so switching fingers doesn't jump the ship
+  private steerWith(p: Phaser.Input.Pointer): void {
+    this.lastX = this.toPlayfieldX(p);
   }
 
-  // pointer positions are in screen pixels; the joystick marker is drawn in the playfield
-  private toPlayfield(p: Phaser.Input.Pointer): Phaser.Math.Vector2 {
-    return this.scene.cameras.main.getWorldPoint(p.x, p.y);
+  // pointer positions are in screen pixels; the ship moves in the scaled playfield
+  private toPlayfieldX(p: Phaser.Input.Pointer): number {
+    return this.scene.cameras.main.getWorldPoint(p.x, p.y).x;
   }
 
   public fadeHints(): void {
     if (!this.hintShown) return;
     this.hintShown = false;
     this.scene.tweens.add({
-      targets: [this.divider, this.leftHint, this.rightHint, this.hintText],
+      targets: this.hints,
       alpha: 0,
       duration: 500,
       delay: 300,
