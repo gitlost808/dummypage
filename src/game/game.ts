@@ -3,6 +3,10 @@ import BootScene from './BootScene';
 import BackgroundScene from './BackgroundScene';
 import GameScene from './GameScene';
 import { constants } from './constants';
+import { preferHighpShaders } from './utils/shader-precision';
+
+// before the game boots, so it covers every shader Phaser compiles
+preferHighpShaders();
 
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
