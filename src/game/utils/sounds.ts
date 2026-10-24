@@ -4,6 +4,7 @@ export type SoundKey =
   | 'shoot'
   | 'enemy-shoot'
   | 'enemy-hit'
+  | 'dive-warn'
   | 'explosion'
   | 'big-explosion'
   | 'shield-hit'
@@ -17,6 +18,8 @@ export const sounds: Record<SoundKey, SoundLayer[]> = {
   'enemy-shoot': [{ wave: 'triangle', duration: 0.12, from: 520, to: 180, volume: 0.18 }],
   // a tank taking a hit without dying
   'enemy-hit': [{ wave: 'square', duration: 0.05, from: 1800, to: 1100, volume: 0.1, decay: 3 }],
+  // a diver winding up, rising so it reads as a warning
+  'dive-warn': [{ wave: 'saw', duration: 0.3, from: 300, to: 900, volume: 0.1, decay: 1 }],
   explosion: [
     { wave: 'noise', duration: 0.35, from: 4000, to: 300, volume: 0.35, decay: 1.5 },
     { wave: 'sine', duration: 0.2, from: 180, to: 50, volume: 0.35 },

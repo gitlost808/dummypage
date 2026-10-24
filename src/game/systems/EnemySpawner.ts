@@ -84,8 +84,7 @@ export class EnemySpawner {
       return;
     }
 
-    // Reactivate (resetting the body to the spawn point) and configure
-    enemy.enableBody(true, x, 0, true, true);
+    // configure first, so the texture (and its height) is set before placing the enemy
     enemy.setTarget(this.player);
     enemy.configure({
       kind,
@@ -98,6 +97,8 @@ export class EnemySpawner {
       diveChancePerSecond,
       fireIntervalMs,
     }, this.enemyProjectiles);
+    // reactivate, resetting the body to just above the top edge so the enemy slides in
+    enemy.enableBody(true, x, -enemy.displayHeight / 2, true, true);
   }
 
   public getGroup(): Phaser.Physics.Arcade.Group {
