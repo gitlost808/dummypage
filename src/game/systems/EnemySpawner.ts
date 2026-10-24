@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { EnemyShip, EnemyKind, EnemyBehavior } from '../entities/EnemyShip';
 import { PlayerShip } from '../entities/PlayerShip';
+import { Boss } from '../entities/Boss';
 import { constants } from '../constants';
 
 type Range = [number, number];
@@ -44,17 +45,25 @@ export class EnemySpawner {
 
   private wave = 0;
   private waveEndsAt = 0;
-  private onWaveStart: (wave: number) => void;
+  private onWaveStart: (wave: number, isBoss: boolean) => void;
+
+  // boss waves last until the boss is beaten, and the difficulty clock stands still meanwhile
+  private boss: Boss;
+  private isBossWave = false;
+  private bossWaveStartedAt = 0;
+  private pausedMs = 0;
 
   constructor(
     scene: Phaser.Scene,
     player: PlayerShip,
     enemyProjectiles: Phaser.Physics.Arcade.Group,
-    onWaveStart: (wave: number) => void
+    boss: Boss,
+    onWaveStart: (wave: number, isBoss: boolean) => void
   ) {
     this.scene = scene;
     this.player = player;
     this.enemyProjectiles = enemyProjectiles;
+    this.boss = boss;
     this.onWaveStart = onWaveStart;
     this.enemies = scene.physics.add.group({
       classType: EnemyShip,
@@ -81,19 +90,41 @@ export class EnemySpawner {
     return 1 + Math.max(0, this.elapsed() - constants.overtimeStartMs) / constants.overtimeMs;
   }
 
+  // time survived outside boss waves
   private elapsed(): number {
-    return this.scene.time.now - this.startTime;
+    const now = this.scene.time.now;
+    const paused = this.pausedMs + (this.isBossWave ? now - this.bossWaveStartedAt : 0);
+    return now - this.startTime - paused;
   }
 
   private startWave(): void {
     this.wave++;
+    this.isBossWave = this.wave % constants.bossEveryWaves === 0;
     this.waveEndsAt = this.scene.time.now + constants.waveDurationMs;
     // every wave builds up from nothing
     this.threatBank = 0;
-    this.onWaveStart(this.wave);
+    this.onWaveStart(this.wave, this.isBossWave);
+    if (this.isBossWave) {
+      this.bossWaveStartedAt = this.scene.time.now;
+      this.boss.spawn(this.wave / constants.bossEveryWaves);
+    }
+  }
+
+  // the boss is beaten: restart the difficulty clock and go to the break before the next wave
+  private endBossWave(): void {
+    const now = this.scene.time.now;
+    this.pausedMs += now - this.bossWaveStartedAt;
+    this.isBossWave = false;
+    this.waveEndsAt = now;
   }
 
   private tick(): void {
+    // the boss fights alone
+    if (this.isBossWave) {
+      if (this.boss.active) return;
+      this.endBossWave();
+    }
+
     // between waves nothing spawns and no budget builds up, so the screen can clear
     const now = this.scene.time.now;
     if (now >= this.waveEndsAt) {

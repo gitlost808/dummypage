@@ -39,7 +39,10 @@ export class PowerUpSystem {
   }
 
   public maybeDrop(x: number, y: number): void {
-    if (Math.random() >= constants.powerUpDropChance) return;
+    if (Math.random() < constants.powerUpDropChance) this.drop(x, y);
+  }
+
+  public drop(x: number, y: number): void {
     this.powerUps.add(new PowerUp(this.scene, x, y, this.pickType()));
   }
 

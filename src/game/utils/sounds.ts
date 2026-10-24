@@ -9,6 +9,7 @@ export type SoundKey =
   | 'big-explosion'
   | 'shield-hit'
   | 'powerup'
+  | 'boss-warn'
   | 'game-over';
 
 // every sound effect in the game, synthesized at boot
@@ -36,6 +37,10 @@ export const sounds: Record<SoundKey, SoundLayer[]> = {
   // rising major arpeggio
   powerup: [
     { wave: 'square', duration: 0.32, from: 523, to: 523, volume: 0.1, decay: 0.5, steps: [1, 1.26, 1.5, 2] },
+  ],
+  // a two-tone siren as the boss wave starts
+  'boss-warn': [
+    { wave: 'saw', duration: 1.4, from: 440, to: 440, volume: 0.14, decay: 0.4, steps: [1, 0.75, 1, 0.75] },
   ],
   // falling arpeggio, delayed so it plays after the death explosion
   // (the scene clock is paused on game over, so the delay is baked into the sound)

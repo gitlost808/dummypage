@@ -4,6 +4,7 @@ import { PlayerShip } from './entities/PlayerShip';
 import { Projectile } from './entities/Projectile';
 import { EnemyProjectile } from './entities/EnemyProjectile';
 import { EnemyShip } from './entities/EnemyShip';
+import { Boss } from './entities/Boss';
 import { ScoreSystem } from './systems/ScoreSystem';
 import { EnemySpawner } from './systems/EnemySpawner';
 import { PowerUpSystem } from './systems/PowerUpSystem';
@@ -15,6 +16,7 @@ import { InputController } from './input/InputController';
 import { GameOverOverlay } from './ui/GameOverOverlay';
 import { MuteButton } from './ui/MuteButton';
 import { WaveBanner } from './ui/WaveBanner';
+import { BossHealthBar } from './ui/BossHealthBar';
 import { playSound, randomDetune } from './utils/audio';
 
 export default class GameScene extends Phaser.Scene {
@@ -29,6 +31,8 @@ export default class GameScene extends Phaser.Scene {
   private gameOverOverlay?: GameOverOverlay;
   private muteButton!: MuteButton;
   private waveBanner!: WaveBanner;
+  private boss!: Boss;
+  private bossHealthBar!: BossHealthBar;
   // left and right edges of the playfield, redrawn on resize (see fitCamera)
   private playfieldBorder!: Phaser.GameObjects.Graphics;
   private isGameOver = false;
@@ -73,9 +77,12 @@ export default class GameScene extends Phaser.Scene {
     // systems
     this.scoreSystem = new ScoreSystem(this);
     this.waveBanner = new WaveBanner(this);
-    this.enemySpawner = new EnemySpawner(this, this.player, this.enemyProjectiles, (wave) =>
-      this.waveBanner.show(wave)
-    );
+    this.boss = new Boss(this, this.player, this.enemyProjectiles);
+    this.bossHealthBar = new BossHealthBar(this);
+    this.enemySpawner = new EnemySpawner(this, this.player, this.enemyProjectiles, this.boss, (wave, isBoss) => {
+      this.waveBanner.show(wave, isBoss);
+      if (isBoss) playSound(this, 'boss-warn');
+    });
     this.powerUps = new PowerUpSystem(this, this.player, () =>
       this.detonateBomb()
     );
@@ -137,7 +144,23 @@ export default class GameScene extends Phaser.Scene {
       undefined,
       this
     );
-    
+    // the player can't reach the boss's height, so only its shots can touch it
+    this.physics.add.overlap(
+      this.boss,
+      this.projectiles,
+      (_boss, proj) => {
+        // several shots can land in the frame the boss dies
+        if (!this.boss.active) return;
+        const { x, y } = proj as Projectile;
+        (proj as Projectile).disableBody(true, true);
+        if (this.boss.damage()) return this.defeatBoss();
+        this.effects.explode(x, y, 0xffffff, constants.enemyHitSparkParticles);
+        playSound(this, 'enemy-hit');
+      },
+      undefined,
+      this
+    );
+
     // everything lives in playfield coordinates, so a resize only refits the camera
     const onResize = (gameSize: Phaser.Structs.Size) => this.fitCamera(gameSize.width, gameSize.height);
 
@@ -175,6 +198,8 @@ export default class GameScene extends Phaser.Scene {
 
     this.player.update();
     this.powerUps.update();
+    this.boss.update();
+    this.bossHealthBar.update(this.boss.active ? this.boss.hpFraction : null);
 
     // fire while held; a buffered press fires as soon as the cooldown allows
     const wantsFire = this.inputType.fire || this.inputType.firePressed;
@@ -214,9 +239,34 @@ export default class GameScene extends Phaser.Scene {
       .getMatching('active', true)
       .forEach((bullet) => (bullet as EnemyProjectile).disableBody(true, true));
     this.scoreSystem.addPoints(points);
+    // the boss just takes a chunk of damage
+    if (this.boss.active && this.boss.damage(this.boss.maxHp * constants.bossBombDamage)) this.defeatBoss();
     this.cameras.main.flash(250, 203, 75, 22);
     this.effects.shake(constants.bombShakeMs, constants.bombShakeIntensity);
     playSound(this, 'big-explosion');
+  }
+
+  private defeatBoss(): void {
+    const { x, y, displayWidth, displayHeight } = this.boss;
+    this.boss.despawn();
+    // its bullets go down with it
+    this.enemyProjectiles
+      .getMatching('active', true)
+      .forEach((bullet) => (bullet as EnemyProjectile).disableBody(true, true));
+    // a chain of blasts across the hull
+    for (let i = 0; i < constants.bossDeathExplosions; i++) {
+      this.time.delayedCall(i * constants.bossDeathExplosionGapMs, () => {
+        const bx = x + Phaser.Math.FloatBetween(-0.4, 0.4) * displayWidth;
+        const by = y + Phaser.Math.FloatBetween(-0.4, 0.4) * displayHeight;
+        this.effects.explode(bx, by, i % 2 ? 0xffffff : constants.bossColor);
+        playSound(this, 'explosion', randomDetune());
+      });
+    }
+    this.effects.explode(x, y, constants.bossColor, constants.explosionDeathParticles);
+    this.effects.shake(constants.bombShakeMs, constants.bombShakeIntensity);
+    playSound(this, 'big-explosion');
+    this.powerUps.drop(x, y);
+    this.scoreSystem.addPoints(this.boss.points);
   }
 
   private gameOver(): void {
