@@ -5,7 +5,7 @@ import { constants } from "../constants";
 import { EnemyProjectile } from "./EnemyProjectile";
 import { playSound, randomDetune } from "../utils/audio";
 
-type EnemyBehavior = "basic" | "strafer" | "diver";
+export type EnemyBehavior = "basic" | "strafer" | "diver" | "hover";
 // what the enemy is (movement comes from its behavior)
 export type EnemyKind = "normal" | "tank" | "gunner";
 
@@ -59,6 +59,14 @@ export class EnemyShip extends Ship {
   // per-enemy sway offset, so strafers don't all sway in unison
   private swayPhase = 0;
 
+  // basic enemies drift sideways at this speed instead of tracking the player
+  private driftVx = 0;
+
+  // hover state: descend to hoverY, stay until hoverEndsAt (0 until arrived), then leave upwards
+  private hoverY = 0;
+  private hoverEndsAt = 0;
+  private isLeaving = false;
+
   constructor(scene: Phaser.Scene, x: number, y: number) {
     super(scene, x, y, "enemy", 0);
     // enemies enter above the screen and leave below it, so only clamp x (in update)
@@ -87,6 +95,13 @@ export class EnemyShip extends Ship {
     this.diveState = "none";
     this.diveStateEndsAt = 0;
     this.swayPhase = Phaser.Math.FloatBetween(0, Math.PI * 2);
+    // tanks fall straight
+    this.driftVx = profile.kind === "tank"
+      ? 0
+      : Phaser.Math.FloatBetween(-constants.enemyDriftSpeed, constants.enemyDriftSpeed);
+    this.hoverY = Phaser.Math.FloatBetween(constants.gunnerHoverYMin, constants.gunnerHoverYMax) * this.scene.scale.height;
+    this.hoverEndsAt = 0;
+    this.isLeaving = false;
     this.isEvading = false;
     this.setVelocity(0, 0);
     this.projectilePool = projectilePool;
@@ -161,8 +176,8 @@ export class EnemyShip extends Ship {
       // velocity was locked in when the dive started
       if (now >= this.diveStateEndsAt) this.diveState = "none";
     } else {
-      // always move down
-      this.setVelocityY(this.profile.speed);
+      if (this.profile.behavior === "hover") this.updateHover(dt);
+      else this.setVelocityY(this.profile.speed);
       if (this.isEvading) {
         this.steerX(this.evasionDir * constants.evasionSpeed, dt);
       } else {
@@ -173,17 +188,25 @@ export class EnemyShip extends Ship {
 
     this.clampToScreenWidth();
 
-    // off-screen clean up
-    if (this.y > this.scene.scale.height + this.height) {
+    // off-screen clean up: below the screen, or above it once a gunner has left
+    if (this.y > this.scene.scale.height + this.height || (this.isLeaving && this.y < -this.height)) {
       this.despawn();
     }
   }
 
-  // ease the sideways velocity towards the desired one, so turns are smooth arcs
+  // ease the velocity towards the desired one, so turns and stops are smooth arcs
   private steerX(desiredVx: number, dt: number): void {
     const vx = (this.body as Phaser.Physics.Arcade.Body).velocity.x;
-    const t = 1 - Math.exp(-constants.enemySteerRate * dt);
-    this.setVelocityX(vx + (desiredVx - vx) * t);
+    this.setVelocityX(this.eased(vx, desiredVx, dt));
+  }
+
+  private steerY(desiredVy: number, dt: number): void {
+    const vy = (this.body as Phaser.Physics.Arcade.Body).velocity.y;
+    this.setVelocityY(this.eased(vy, desiredVy, dt));
+  }
+
+  private eased(current: number, desired: number, dt: number): number {
+    return current + (desired - current) * (1 - Math.exp(-constants.enemySteerRate * dt));
   }
 
   // the body ignores world bounds (see constructor), so keep it on screen horizontally here
@@ -191,22 +214,52 @@ export class EnemyShip extends Ship {
     const halfW = this.displayWidth / 2;
     const maxX = this.scene.scale.width - halfW;
     if (this.x >= halfW && this.x <= maxX) return;
+    // drifters bounce off the edge instead of sliding along it
+    this.driftVx = this.x < halfW ? Math.abs(this.driftVx) : -Math.abs(this.driftVx);
     this.x = Phaser.Math.Clamp(this.x, halfW, maxX);
     this.setVelocityX(0);
+  }
+
+  // gunners descend to their hover height, patrol and fire for a while, then retreat upwards
+  private updateHover(dt: number): void {
+    const now = this.scene.time.now;
+    // close enough: the steering eases in, so it would take a while to reach hoverY exactly
+    if (this.hoverEndsAt === 0 && this.y >= this.hoverY - 8) {
+      this.hoverEndsAt = now + Phaser.Math.Between(constants.gunnerHoverMsMin, constants.gunnerHoverMsMax);
+    }
+    if (!this.isLeaving && this.hoverEndsAt > 0 && now >= this.hoverEndsAt) {
+      this.isLeaving = true;
+      // no parting shots on the way out
+      if (this.fireTimer) this.fireTimer.remove(false);
+      this.fireTimer = undefined;
+    }
+
+    const speed = this.profile.speed;
+    const desiredVy = this.isLeaving
+      ? -speed
+      : Phaser.Math.Clamp((this.hoverY - this.y) * constants.enemyTrackGain, -speed, speed);
+    this.steerY(desiredVy, dt);
   }
 
   private handleBehavior(dt: number): void {
     if (!this.target) return;
 
-    const targetX = this.target.x;
-    const freq = this.profile.swayFrequency;
+    // basic enemies (and tanks) don't track the player, so they don't all line up in its column
+    if (this.profile.behavior === "basic") {
+      this.steerX(this.driftVx, dt);
+      return;
+    }
 
-    let desiredX = targetX;
-
-    if (this.profile.behavior === "strafer" || this.profile.behavior === "diver") {
-      // add sinusoidal sway that ramps with difficulty
-      const sway = Math.sin(this.scene.time.now * freq + this.swayPhase) * this.profile.swayAmplitude;
-      desiredX += sway;
+    let desiredX: number;
+    if (this.profile.behavior === "hover") {
+      // patrol back and forth across the screen
+      const width = this.scene.scale.width;
+      const patrol = Math.sin(this.scene.time.now * constants.gunnerPatrolFrequency + this.swayPhase);
+      desiredX = width / 2 + patrol * width * constants.gunnerPatrolSpread;
+    } else {
+      // track the player, with a sinusoidal sway that ramps with difficulty
+      const sway = Math.sin(this.scene.time.now * this.profile.swayFrequency + this.swayPhase) * this.profile.swayAmplitude;
+      desiredX = this.target.x + sway;
     }
 
     // slow down near the target instead of overshooting, and never outrun the player
@@ -271,7 +324,8 @@ export class EnemyShip extends Ship {
   }
 
   private scheduleNextEvasion(): void {
-    if (!this.scene) {
+    // tanks don't dodge
+    if (!this.scene || this.profile.kind === "tank") {
       return;
     }
     const scale = this.profile.evasionScale || 1;

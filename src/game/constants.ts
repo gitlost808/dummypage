@@ -46,12 +46,20 @@ export const constants = {
   maxBankedThreat: 4,
   spawnTickMs: 100,
   minSpawnGapMs: 250,
+  // waves: spawning runs for waveDurationMs, then pauses for waveBreakMs so the screen can clear
+  waveDurationMs: 20000,
+  waveBreakMs: 3500,
+  waveBannerColor: 0x268bd2,
+  // banner fade in, hold and fade out (in ms)
+  waveBannerFadeMs: 250,
+  waveBannerHoldMs: 1000,
   // spawn weights, from the difficulty each one unlocks at: [weight when unlocked, weight at difficulty 1]
   enemyKindWeights: {
     normal: { unlockAt: 0, weight: [1, 1] as [number, number] },
     tank: { unlockAt: 0.3, weight: [0.15, 0.4] as [number, number] },
     gunner: { unlockAt: 0.45, weight: [0.15, 0.35] as [number, number] },
   },
+  // movement of normal enemies; tanks fall straight and gunners hover
   enemyBehaviorWeights: {
     basic: { unlockAt: 0, weight: [1, 0.15] as [number, number] },
     strafer: { unlockAt: 0.1, weight: [1, 0.8] as [number, number] },
@@ -146,6 +154,17 @@ export const constants = {
   gunnerAimJitter: 0.08,
   // minimum angle below horizontal for aimed shots (radians), so they always head down
   gunnerMinAimAngle: 0.35,
+  // gunners stop at a height in this band (fraction of screen height), patrol and fire, then retreat upwards
+  gunnerHoverYMin: 0.12,
+  gunnerHoverYMax: 0.3,
+  gunnerHoverMsMin: 4000,
+  gunnerHoverMsMax: 7000,
+  // patrol: sway this fraction of the screen width either side of the centre
+  gunnerPatrolSpread: 0.35,
+  // radians per ms, about one sweep every 8 seconds
+  gunnerPatrolFrequency: 0.0008,
+  // basic enemies drift sideways at up to this speed (pixels/sec) and bounce off the edges
+  enemyDriftSpeed: 60,
   // white flash and spark burst when an enemy survives a hit
   enemyHitFlashMs: 60,
   enemyHitSparkParticles: 4,

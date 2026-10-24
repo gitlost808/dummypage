@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { EnemyShip, EnemyKind } from '../entities/EnemyShip';
+import { EnemyShip, EnemyKind, EnemyBehavior } from '../entities/EnemyShip';
 import { PlayerShip } from '../entities/PlayerShip';
 import { constants } from '../constants';
 
@@ -42,20 +42,27 @@ export class EnemySpawner {
   private nextKind: EnemyKind = 'normal';
   private nextSpawnAt = 0;
 
+  private wave = 0;
+  private waveEndsAt = 0;
+  private onWaveStart: (wave: number) => void;
+
   constructor(
     scene: Phaser.Scene,
     player: PlayerShip,
-    enemyProjectiles: Phaser.Physics.Arcade.Group
+    enemyProjectiles: Phaser.Physics.Arcade.Group,
+    onWaveStart: (wave: number) => void
   ) {
     this.scene = scene;
     this.player = player;
     this.enemyProjectiles = enemyProjectiles;
+    this.onWaveStart = onWaveStart;
     this.enemies = scene.physics.add.group({
       classType: EnemyShip,
       maxSize: constants.maxEnemies,
       runChildUpdate: true,
     });
     this.startTime = scene.time.now;
+    this.startWave();
     scene.time.addEvent({
       delay: constants.spawnTickMs,
       loop: true,
@@ -78,7 +85,22 @@ export class EnemySpawner {
     return this.scene.time.now - this.startTime;
   }
 
+  private startWave(): void {
+    this.wave++;
+    this.waveEndsAt = this.scene.time.now + constants.waveDurationMs;
+    // every wave builds up from nothing
+    this.threatBank = 0;
+    this.onWaveStart(this.wave);
+  }
+
   private tick(): void {
+    // between waves nothing spawns and no budget builds up, so the screen can clear
+    const now = this.scene.time.now;
+    if (now >= this.waveEndsAt) {
+      if (now < this.waveEndsAt + constants.waveBreakMs) return;
+      this.startWave();
+    }
+
     const difficulty = this.getDifficulty();
     const overtime = this.getOvertime();
     const earned = scale(constants.threatPerSecond, difficulty) * overtime * (constants.spawnTickMs / 1000);
@@ -105,7 +127,7 @@ export class EnemySpawner {
     const width = this.scene.scale.width;
     const margin = Math.min(constants.enemySpawnMargin, width / 2);
     const x = Phaser.Math.Between(margin, width - margin);
-    const behavior = pickWeighted(constants.enemyBehaviorWeights, difficulty);
+    const behavior = this.pickBehavior(kind, difficulty);
 
     // tanks are slower in both directions
     const speedFactor = kind === 'tank' ? constants.tankSpeedMultiplier : 1;
@@ -136,6 +158,13 @@ export class EnemySpawner {
     // reactivate, resetting the body to just above the top edge so the enemy slides in
     enemy.enableBody(true, x, -enemy.displayHeight / 2, true, true);
     return true;
+  }
+
+  // tanks fall straight and gunners hover; only normal enemies get a random movement
+  private pickBehavior(kind: EnemyKind, difficulty: number): EnemyBehavior {
+    if (kind === 'tank') return 'basic';
+    if (kind === 'gunner') return 'hover';
+    return pickWeighted(constants.enemyBehaviorWeights, difficulty);
   }
 
   public getGroup(): Phaser.Physics.Arcade.Group {
