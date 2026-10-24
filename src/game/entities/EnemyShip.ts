@@ -4,12 +4,13 @@ import { PlayerShip } from "./PlayerShip";
 import { constants } from "../constants";
 import { EnemyProjectile } from "./EnemyProjectile";
 import { playSound, randomDetune } from "../utils/audio";
+import { glowTextureKey } from "../utils/glow";
 
 export type EnemyBehavior = "basic" | "strafer" | "diver" | "hover";
 // what the enemy is (movement comes from its behavior)
 export type EnemyKind = "normal" | "tank" | "gunner";
 
-const enemyKinds: Record<EnemyKind, { texture: string; color: number; hp: number; points: number }> = {
+export const enemyKinds: Record<EnemyKind, { texture: string; color: number; hp: number; points: number }> = {
   normal: { texture: "enemy", color: constants.enemyColor, hp: 1, points: constants.pointsPerHit },
   tank: { texture: "enemy-tank", color: constants.tankColor, hp: constants.tankHp, points: constants.tankPoints },
   gunner: { texture: "enemy-gunner", color: constants.gunnerColor, hp: 1, points: constants.gunnerPoints },
@@ -33,6 +34,9 @@ export class EnemyShip extends Ship {
   private fireTimer?: Phaser.Time.TimerEvent;
   private flashTimer?: Phaser.Time.TimerEvent;
   private hp = 1;
+  // the texture may carry a baked glow around the hull, so sizes come from the hull's own texture
+  public hullWidth = 0;
+  public hullHeight = 0;
 
   private profile: EnemyProfile = {
     kind: "normal",
@@ -71,7 +75,6 @@ export class EnemyShip extends Ship {
     super(scene, x, y, "enemy", 0);
     // enemies enter above the screen and leave below it, so only clamp x (in update)
     this.setCollideWorldBounds(false);
-    this.addGlow(constants.enemyColor);
     this.scheduleNextEvasion();
   }
 
@@ -87,10 +90,15 @@ export class EnemyShip extends Ship {
     this.speed = profile.speed;
     // reset all state, since pooled enemies get reused
     const kind = enemyKinds[profile.kind];
-    this.setTexture(kind.texture);
-    (this.body as Phaser.Physics.Arcade.Body).setSize();
+    const hull = this.scene.textures.getFrame(kind.texture);
+    this.hullWidth = hull.width;
+    this.hullHeight = hull.height;
+    // the baked glow is missing under the canvas renderer
+    const glowTexture = glowTextureKey(kind.texture);
+    this.setTexture(this.scene.textures.exists(glowTexture) ? glowTexture : kind.texture);
+    // centred on the texture, so it covers the hull and not the glow
+    (this.body as Phaser.Physics.Arcade.Body).setSize(hull.width, hull.height);
     this.clearTint();
-    if (this.glow) this.glow.color = kind.color;
     this.hp = kind.hp;
     this.diveState = "none";
     this.diveStateEndsAt = 0;
@@ -194,7 +202,7 @@ export class EnemyShip extends Ship {
     this.clampToPlayfieldWidth();
 
     // off-screen clean up: below the screen, or above it once a gunner has left
-    if (this.y > constants.height + this.height || (this.isLeaving && this.y < -this.height)) {
+    if (this.y > constants.height + this.hullHeight || (this.isLeaving && this.y < -this.hullHeight)) {
       this.despawn();
     }
   }
@@ -216,7 +224,7 @@ export class EnemyShip extends Ship {
 
   // the body ignores world bounds (see constructor), so keep it in the playfield horizontally here
   private clampToPlayfieldWidth(): void {
-    const halfW = this.displayWidth / 2;
+    const halfW = this.hullWidth / 2;
     const maxX = constants.width - halfW;
     if (this.x >= halfW && this.x <= maxX) return;
     // drifters bounce off the edge instead of sliding along it
@@ -386,7 +394,7 @@ export class EnemyShip extends Ship {
   private fireProjectile(): void {
     if (!this.active || !this.projectilePool || !this.target) return;
 
-    const y = this.y + this.height * 0.5;
+    const y = this.y + this.hullHeight * 0.5;
     const aimed = this.profile.kind === "gunner";
     const bullet = this.projectilePool.get(this.x, y) as EnemyProjectile;
     if (!bullet) return;

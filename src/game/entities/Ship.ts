@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { constants } from '../constants';
+import { addShipGlow } from '../utils/glow';
 
 export abstract class Ship extends Phaser.Physics.Arcade.Sprite {
   protected speed: number;
@@ -15,17 +15,9 @@ export abstract class Ship extends Phaser.Physics.Arcade.Sprite {
 
   abstract update(): void;
 
-  // soft neon halo; filters are WebGL only, so ships stay plain under the canvas renderer
+  // a live glow, for the few ships that need one; enemies use baked glows (see bakeGlowTextures)
   protected addGlow(color: number): void {
-    if (!this.enableFilters().filters) return;
-    // pad automatically, so the halo isn't clipped at the texture edge
-    this.glow = this.filters.internal.addGlow(
-      color,
-      constants.shipGlowStrength,
-      0,
-      constants.shipGlowScale
-    );
-    this.glow.setPaddingOverride(null);
+    this.glow = addShipGlow(this, color);
   }
 
   protected preDestroy(): void {};
