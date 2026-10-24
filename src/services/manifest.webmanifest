@@ -1,0 +1,33 @@
+{
+  "id": "/services/",
+  "name": "0x29a.me services",
+  "short_name": "0x29a.me services",
+  "description": "All services hosted on 0x29a.me.",
+  "start_url": "/services/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#060606",
+  "theme_color": "#859900",
+  "icons": [
+    {
+      "src": "https://www.0x29a.me/android-chrome-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://www.0x29a.me/android-chrome-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "TeamSpeak status",
+      "url": "/ts-status/"
+    },
+    {
+      "name": "Space game",
+      "url": "/game/"
+    }
+  ]
+}
