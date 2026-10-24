@@ -6,18 +6,13 @@ export class PlayerShip extends Ship {
   private inputController: InputController;
   private shield?: Phaser.GameObjects.Arc;
   private invulnerableUntil = 0;
-  private motionBlur?: Phaser.Filters.Blur;
 
   constructor(scene: Phaser.Scene, x: number, y: number, input: InputController) {
     super(scene, x, y, 'player', constants.playerSpeed);
     this.inputController = input;
     this.setDragX(constants.playerDrag);
+    // no motion blur: Phaser 4's blur filter made the ship vanish, then turn translucent, on mobile
     this.addGlow(constants.playerColor);
-    // added after the glow, so the halo smears along with the hull. Medium quality (1), because
-    // the low-quality shader shadows its `offset` uniform, which some mobile GPUs miscompile,
-    // making the ship vanish whenever it moves
-    this.motionBlur = this.filters?.internal.addBlur(1, 0, 0);
-    this.motionBlur?.setPaddingOverride(null);
   }
 
   update(): void {
@@ -25,17 +20,8 @@ export class PlayerShip extends Ship {
     if (this.inputController.left) this.setVelocityX(-this.speed);
     else if (this.inputController.right) this.setVelocityX(this.speed);
     else this.setVelocityX(0);
-    this.updateMotionBlur();
 
     this.shield?.setPosition(this.x, this.y);
-  }
-
-  // blur sideways in proportion to speed; skip the pass entirely when standing still
-  private updateMotionBlur(): void {
-    if (!this.motionBlur) return;
-    const vx = (this.body as Phaser.Physics.Arcade.Body).velocity.x;
-    this.motionBlur.active = vx !== 0;
-    this.motionBlur.x = (Math.abs(vx) / this.speed) * constants.playerMotionBlur;
   }
 
   activateShield(): void {

@@ -178,10 +178,8 @@ export const constants = {
   // random pitch variation for frequent sounds (cents)
   soundDetuneCents: 80,
   muteButtonMargin: 10,
-  // ship FX (WebGL only): a soft neon glow in the ship's color, plus motion blur on the player
+  // ship FX (WebGL only): a soft neon glow in the ship's color
   shipGlowStrength: 3,
   // multiplies the glow's reach; it's measured in texture pixels, so it shrinks with the camera zoom
   shipGlowScale: 4,
-  // horizontal blur offset at full player speed (medium-quality blur reaches ~2.4x as far per unit)
-  playerMotionBlur: 1,
 };
