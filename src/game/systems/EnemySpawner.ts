@@ -173,7 +173,7 @@ export class EnemySpawner {
       return false;
     }
 
-    // configure first, so the texture (and its height) is set before placing the enemy
+    // configure first, so the hull size is set before placing the enemy
     enemy.setTarget(this.player);
     enemy.configure({
       kind,
@@ -187,7 +187,7 @@ export class EnemySpawner {
       fireIntervalMs,
     }, this.enemyProjectiles);
     // reactivate, resetting the body to just above the top edge so the enemy slides in
-    enemy.enableBody(true, x, -enemy.displayHeight / 2, true, true);
+    enemy.enableBody(true, x, -enemy.hullHeight / 2, true, true);
     return true;
   }
 
