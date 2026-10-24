@@ -132,3 +132,12 @@ async function main() {
 document.addEventListener("DOMContentLoaded", () => {
   main();
 });
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", function () {
+    navigator.serviceWorker
+      .register(new URL("service-worker.ts", import.meta.url), { type: "module" })
+      .then((reg) => console.log("ServiceWorker registered:", reg))
+      .catch((err) => console.error("ServiceWorker registration failed:", err));
+  });
+}
