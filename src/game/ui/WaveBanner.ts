@@ -11,14 +11,13 @@ export class WaveBanner {
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
     this.text = scene.add
-      .text(0, 0, '', {
+      .text(constants.width / 2, constants.height * 0.3, '', {
         fontSize: '40px',
         color: toHex(constants.waveBannerColor),
       })
       .setOrigin(0.5)
       .setDepth(50)
       .setAlpha(0);
-    this.layout(scene.scale.width, scene.scale.height);
   }
 
   public show(wave: number): void {
@@ -32,9 +31,5 @@ export class WaveBanner {
         { alpha: 0, duration: constants.waveBannerFadeMs * 2, delay: constants.waveBannerHoldMs },
       ],
     });
-  }
-
-  public layout(width: number, height: number): void {
-    this.text.setPosition(width / 2, height * 0.3);
   }
 }
