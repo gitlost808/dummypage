@@ -50,9 +50,13 @@ export class PlayerShip extends Ship {
     });
   }
 
-  // returns true if the hit was absorbed by the shield (or post-hit invulnerability)
+  // after the shield breaks, hits pass straight through rather than registering as a second shield hit
+  get isInvulnerable(): boolean {
+    return this.scene.time.now < this.invulnerableUntil;
+  }
+
+  // returns true if the hit was absorbed by the shield
   absorbHit(): boolean {
-    if (this.scene.time.now < this.invulnerableUntil) return true;
     if (!this.shield) return false;
 
     this.breakShield();

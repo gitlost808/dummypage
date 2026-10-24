@@ -89,7 +89,8 @@ export default class GameScene extends Phaser.Scene {
     this.effects = new EffectsSystem(this);
     this.muteButton = new MuteButton(this);
 
-    // collisions
+    // collisions; checked pair by pair, so a second hit in the frame the shield breaks is skipped too
+    const canHitPlayer = () => !this.player.isInvulnerable;
     this.physics.add.overlap(
       this.player,
       this.enemySpawner.getGroup(),
@@ -105,7 +106,7 @@ export default class GameScene extends Phaser.Scene {
         playSound(this, 'explosion', randomDetune());
         this.scoreSystem.addPoints(ship.points);
       },
-      undefined,
+      canHitPlayer,
       this
     );
     this.physics.add.overlap(
@@ -118,7 +119,7 @@ export default class GameScene extends Phaser.Scene {
         this.effects.explode(x, y, constants.shieldColor, constants.explosionSmallParticles);
         playSound(this, 'shield-hit');
       },
-      undefined,
+      canHitPlayer,
       this
     );
     this.physics.add.overlap(
