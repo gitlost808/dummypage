@@ -15,6 +15,7 @@ import { CombinedInput } from './input/CombinedInput';
 import { InputController } from './input/InputController';
 import { GameOverOverlay } from './ui/GameOverOverlay';
 import { MuteButton } from './ui/MuteButton';
+import { WaveBanner } from './ui/WaveBanner';
 import { playSound, randomDetune } from './utils/audio';
 
 export default class GameScene extends Phaser.Scene {
@@ -29,6 +30,7 @@ export default class GameScene extends Phaser.Scene {
   private effects!: EffectsSystem;
   private gameOverOverlay?: GameOverOverlay;
   private muteButton!: MuteButton;
+  private waveBanner!: WaveBanner;
   private isGameOver = false;
   private nextFireAt = 0;
 
@@ -68,7 +70,10 @@ export default class GameScene extends Phaser.Scene {
 
     // systems
     this.scoreSystem = new ScoreSystem(this);
-    this.enemySpawner = new EnemySpawner(this, this.player, this.enemyProjectiles);
+    this.waveBanner = new WaveBanner(this);
+    this.enemySpawner = new EnemySpawner(this, this.player, this.enemyProjectiles, (wave) =>
+      this.waveBanner.show(wave)
+    );
     this.powerUps = new PowerUpSystem(this, this.player, () =>
       this.detonateBomb()
     );
@@ -152,6 +157,7 @@ export default class GameScene extends Phaser.Scene {
       this.cameras.main.setBounds(0, 0, width, height);
 
       this.muteButton.layout(width);
+      this.waveBanner.layout(width, height);
 
       // keep the game-over screen centred
       this.gameOverOverlay?.layout(width, height);
