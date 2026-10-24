@@ -110,8 +110,6 @@ export const constants = {
   bottomMargin: 200,
   // ship travel per pixel of finger travel (both in playfield px)
   touchDragSensitivity: 1,
-  // top speed of the ship gliding after the finger (pixels/sec), so fast flicks don't teleport it
-  touchFollowMaxSpeed: 1500,
   // power-ups: dropped by destroyed enemies
   powerUpDropChance: 0.12,
   powerUpSpeed: 120,

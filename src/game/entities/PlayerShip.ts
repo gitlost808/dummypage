@@ -40,7 +40,8 @@ export class PlayerShip extends Ship {
     return Math.abs((this.body as Phaser.Physics.Arcade.Body).velocity.x);
   }
 
-  // touch: move by the finger's travel, gliding there no faster than touchFollowMaxSpeed.
+  // touch: move by the finger's travel, gliding there at up to the same speed as the keys,
+  // so dragging is no faster than steering.
   // The position is set directly (the body syncs to it), since chasing the target with a
   // velocity overshoots whenever frames and physics steps don't line up, e.g. at 120 Hz
   private followDrag(): number {
@@ -60,7 +61,7 @@ export class PlayerShip extends Ship {
 
     const dt = this.scene.game.loop.delta / 1000;
     if (dt <= 0) return 0;
-    const maxStep = constants.touchFollowMaxSpeed * dt;
+    const maxStep = this.speed * dt;
     const step = Phaser.Math.Clamp(this.dragTargetX - this.x, -maxStep, maxStep);
     this.x += step;
     return Math.abs(step) / dt;
@@ -70,8 +71,7 @@ export class PlayerShip extends Ship {
   private updateMotionBlur(speed: number): void {
     if (!this.motionBlur) return;
     this.motionBlur.active = speed > 0;
-    // touch can outrun the keys, so cap the smear at full key speed
-    this.motionBlur.x = Math.min(speed / this.speed, 1) * constants.playerMotionBlur;
+    this.motionBlur.x = (speed / this.speed) * constants.playerMotionBlur;
   }
 
   activateShield(): void {
