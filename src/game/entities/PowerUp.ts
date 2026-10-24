@@ -27,6 +27,6 @@ export class PowerUp extends Phaser.Physics.Arcade.Sprite {
 
   update(): void {
     this.setVelocityY(constants.powerUpSpeed);
-    if (this.y > this.scene.scale.height + this.height) this.destroy();
+    if (this.y > constants.height + this.height) this.destroy();
   }
 }

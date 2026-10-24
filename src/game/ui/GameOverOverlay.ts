@@ -21,7 +21,7 @@ export class GameOverOverlay extends Phaser.GameObjects.Container {
   ) {
     super(scene, 0, 0);
     scene.add.existing(this);
-    this.setDepth(100).setScrollFactor(0);
+    this.setDepth(100);
 
     this.backdrop = scene.add
       .rectangle(0, 0, 1, 1, 0x000000, constants.gameOverBackdropAlpha)
@@ -56,7 +56,7 @@ export class GameOverOverlay extends Phaser.GameObjects.Container {
       this.highScoreText,
       this.prompt,
     ]);
-    this.layout(scene.scale.width, scene.scale.height);
+    this.layout(constants.width, constants.height);
 
     // fade in; tweens run even while the scene clock is paused
     this.setAlpha(0);
@@ -92,7 +92,7 @@ export class GameOverOverlay extends Phaser.GameObjects.Container {
     );
   }
 
-  layout(width: number, height: number): void {
+  private layout(width: number, height: number): void {
     const cx = width / 2;
     const cy = height / 2;
     this.backdrop.setSize(width, height);

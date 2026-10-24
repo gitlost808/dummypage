@@ -29,7 +29,7 @@ export class EnemyProjectile extends Phaser.Physics.Arcade.Sprite {
   }
 
   update(): void {
-    if (this.y > this.scene.scale.height + this.height) {
+    if (this.y > constants.height + this.height) {
       // return to the pool
       this.disableBody(true, true);
     }

@@ -24,8 +24,9 @@ export class TouchInput implements InputController {
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
 
-    // visual guidance for touch controls
-    const { width, height } = scene.scale;
+    // visual guidance for touch controls, in playfield coordinates (the playfield is centred,
+    // so its middle is also the middle of the screen, where the touch zones split)
+    const { width, height } = constants;
     this.divider = scene.add.rectangle(width / 2, height / 2, 2, height, 0xffffff, 0.12).setDepth(5);
     this.leftHint = scene.add.text(width * 0.25, height - 90, 'Swipe here to move', {
       fontSize: '16px',
@@ -42,14 +43,6 @@ export class TouchInput implements InputController {
       color: '#cccccc',
     }).setOrigin(0.5).setDepth(6).setAlpha(0.85);
 
-    this.layoutHints(width, height);
-
-    // the ScaleManager outlives the scene, so detach on shutdown/restart
-    scene.scale.on('resize', this.onResize, this);
-    scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
-      scene.scale.off('resize', this.onResize, this);
-    });
-
     scene.input.on('pointerdown', this.onDown, this);
     scene.input.on('pointermove', this.onMove, this);
     scene.input.on('pointerup', this.onUp, this);
@@ -60,6 +53,7 @@ export class TouchInput implements InputController {
     // ignore taps on UI such as the mute button
     if (currentlyOver.length > 0) return;
 
+    // the touch zones split the whole screen, not just the playfield
     const { width } = this.scene.scale;
     if (p.x < width / 2) {
       // Begin movement tracking
@@ -67,7 +61,8 @@ export class TouchInput implements InputController {
       this.originX = p.x;
       this.left = false;
       this.right = false;
-      this.showOriginMarker(p.x, p.y);
+      const point = this.toPlayfield(p);
+      this.showOriginMarker(point.x, point.y);
     } else {
       // Start shooting; held until this pointer is released
       this.firePointers.add(p);
@@ -86,8 +81,9 @@ export class TouchInput implements InputController {
       this.right = offset > constants.touchDeadZone;
 
       if (this.originMarker && this.originHandle) {
-        const dx = Phaser.Math.Clamp(p.x - this.originMarker.x, -36, 36);
-        const dy = Phaser.Math.Clamp(p.y - this.originMarker.y, -36, 36);
+        const point = this.toPlayfield(p);
+        const dx = Phaser.Math.Clamp(point.x - this.originMarker.x, -36, 36);
+        const dy = Phaser.Math.Clamp(point.y - this.originMarker.y, -36, 36);
         this.originHandle.setPosition(dx, dy);
       }
     }
@@ -133,16 +129,9 @@ export class TouchInput implements InputController {
     });
   }
 
-  private onResize(size: Phaser.Structs.Size): void {
-    this.layoutHints(size.width, size.height);
-  }
-
-  private layoutHints(width: number, height: number): void {
-    this.divider.setPosition(width / 2, height / 2);
-    this.divider.setSize(2, height);
-    this.leftHint.setPosition(width * 0.25, height - 90);
-    this.rightHint.setPosition(width * 0.75, height - 90);
-    this.hintText.setPosition(width / 2, height - 50);
+  // pointer positions are in screen pixels; the joystick marker is drawn in the playfield
+  private toPlayfield(p: Phaser.Input.Pointer): Phaser.Math.Vector2 {
+    return this.scene.cameras.main.getWorldPoint(p.x, p.y);
   }
 
   public fadeHints(): void {
