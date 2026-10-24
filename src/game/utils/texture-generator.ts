@@ -122,6 +122,39 @@ export function generateAllTextures(scene: Phaser.Scene): void {
   enemyGfx.fillStyle(constants.gunnerColor);
   enemyGfx.fillCircle(4, 4, 4);
   enemyGfx.generateTexture('enemy-projectile-aimed', 8, 8);
+  enemyGfx.clear();
+
+  // boss: a broad hull with swept wings, two cannons and a glowing core
+  enemyGfx.fillStyle(constants.bossColor);
+  enemyGfx.fillPoints(
+    [
+      new Phaser.Math.Vector2(10, 1),
+      new Phaser.Math.Vector2(102, 1),
+      new Phaser.Math.Vector2(111, 26),
+      new Phaser.Math.Vector2(80, 40),
+      new Phaser.Math.Vector2(66, 71),
+      new Phaser.Math.Vector2(46, 71),
+      new Phaser.Math.Vector2(32, 40),
+      new Phaser.Math.Vector2(1, 26),
+    ],
+    true
+  );
+  enemyGfx.fillRect(18, 26, 6, 22);
+  enemyGfx.fillRect(88, 26, 6, 22);
+  enemyGfx.fillStyle(0x000000, 0.35);
+  enemyGfx.fillRect(14, 8, 84, 4);
+  enemyGfx.fillRect(30, 18, 52, 4);
+  enemyGfx.fillStyle(0xffffff);
+  enemyGfx.fillCircle(56, 40, 7);
+  enemyGfx.generateTexture('boss', 112, 72);
+  enemyGfx.clear();
+
+  // boss projectile: round with a bright centre, so it stands out from the gunner's
+  enemyGfx.fillStyle(constants.bossProjectileColor);
+  enemyGfx.fillCircle(5, 5, 5);
+  enemyGfx.fillStyle(0xffffff);
+  enemyGfx.fillCircle(5, 5, 2);
+  enemyGfx.generateTexture('boss-projectile', 10, 10);
   enemyGfx.destroy();
 }
 

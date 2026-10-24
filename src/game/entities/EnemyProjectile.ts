@@ -13,7 +13,7 @@ export class EnemyProjectile extends Phaser.Physics.Arcade.Sprite {
 
   static createPool(
     scene: Phaser.Scene,
-    maxSize = constants.maxProjectiles
+    maxSize = constants.maxEnemyProjectiles
   ): Phaser.Physics.Arcade.Group {
     return scene.physics.add.group({
       classType: EnemyProjectile,
@@ -29,8 +29,14 @@ export class EnemyProjectile extends Phaser.Physics.Arcade.Sprite {
   }
 
   update(): void {
-    // aimed shots can leave through the sides; nothing clips the playfield, so recycle them there
-    if (this.y > constants.height + this.height || this.x < 0 || this.x > constants.width) {
+    // aimed shots can leave through the sides and boss rings through the top; nothing clips the
+    // playfield, so recycle them there
+    if (
+      this.y > constants.height + this.height ||
+      this.y < -this.height ||
+      this.x < 0 ||
+      this.x > constants.width
+    ) {
       // return to the pool
       this.disableBody(true, true);
     }

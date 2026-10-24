@@ -3,7 +3,7 @@ import { constants } from '../constants';
 
 const toHex = (color: number) => `#${color.toString(16).padStart(6, '0')}`;
 
-// "WAVE n" in the upper middle of the screen: fades in, holds, fades out
+// "WAVE n" (or the boss warning) in the upper middle of the screen: fades in, holds, fades out
 export class WaveBanner {
   private scene: Phaser.Scene;
   private text: Phaser.GameObjects.Text;
@@ -20,8 +20,10 @@ export class WaveBanner {
       .setAlpha(0);
   }
 
-  public show(wave: number): void {
-    this.text.setText(`WAVE ${wave}`);
+  public show(wave: number, isBoss: boolean): void {
+    this.text
+      .setText(isBoss ? constants.bossBannerText : `WAVE ${wave}`)
+      .setColor(toHex(isBoss ? constants.bossColor : constants.waveBannerColor));
     this.scene.tweens.killTweensOf(this.text);
     this.text.setAlpha(0);
     this.scene.tweens.chain({

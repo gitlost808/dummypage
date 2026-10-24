@@ -167,6 +167,50 @@ export const constants = {
   gunnerPatrolSpread: 0.35,
   // radians per ms, about one sweep every 8 seconds
   gunnerPatrolFrequency: 0.0008,
+  // boss: every bossEveryWaves-th wave is the boss alone; the wave lasts until it's beaten,
+  // and the difficulty clock stands still meanwhile
+  bossEveryWaves: 5,
+  bossColor: 0x6c71c4,
+  bossProjectileColor: 0xb4a7ff,
+  bossBannerText: 'WARNING: BOSS',
+  // hit points and points at the first encounter; each later encounter adds the growth fraction of the base
+  bossHp: 80,
+  bossHpGrowth: 0.5,
+  bossPoints: 500,
+  // later encounters also attack more often (cooldowns shrink by 1 + growth per encounter)
+  bossAttackRateGrowth: 0.15,
+  // slides in from the top to this height (fraction of screen height), then patrols like a gunner
+  bossEntrySpeed: 70,
+  bossHoverY: 0.18,
+  bossPatrolSpread: 0.3,
+  bossPatrolFrequency: 0.0006,
+  bossLateralSpeed: 140,
+  // phases start below these fractions of hit points
+  bossPhaseThresholds: [0.66, 0.33],
+  // per phase: the attacks it picks from, the pause after each attack (ms) and the patrol speed-up
+  bossPhases: [
+    { attacks: ['burst', 'fan'], cooldownMs: 1500, burstShots: 3, fanShots: 5, patrolSpeed: 1 },
+    { attacks: ['burst', 'fan'], cooldownMs: 1150, burstShots: 5, fanShots: 7, patrolSpeed: 1.4 },
+    { attacks: ['burst', 'fan', 'ring'], cooldownMs: 950, burstShots: 5, fanShots: 7, patrolSpeed: 1.8 },
+  ] as { attacks: ('burst' | 'fan' | 'ring')[]; cooldownMs: number; burstShots: number; fanShots: number; patrolSpeed: number }[],
+  // the boss blinks before each attack, so it can be read and dodged
+  bossTelegraphMs: 450,
+  bossFirstAttackDelayMs: 800,
+  bossProjectileSpeed: 210,
+  bossBurstGapMs: 110,
+  // total angle of the fan (radians), aimed at the player
+  bossFanArc: 1.1,
+  bossRingShots: 16,
+  bossRingSpeed: 150,
+  // a bomb takes this fraction of the boss's hit points
+  bossBombDamage: 0.15,
+  // death: a chain of explosions over the hull
+  bossDeathExplosions: 6,
+  bossDeathExplosionGapMs: 120,
+  bossHealthBarY: 108,
+  bossHealthBarHeight: 8,
+  // enemy bullets get their own, larger pool, since boss attacks fire many at once
+  maxEnemyProjectiles: 150,
   // basic enemies drift sideways at up to this speed (pixels/sec) and bounce off the edges
   enemyDriftSpeed: 60,
   // white flash and spark burst when an enemy survives a hit
