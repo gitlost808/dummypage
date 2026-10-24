@@ -128,7 +128,7 @@ export class EnemyShip extends Ship {
     if (this.hp <= 0) return true;
 
     // flash white, then darken to show the remaining hit points
-    this.setTintFill(0xffffff);
+    this.flashWhite();
     if (this.flashTimer) this.flashTimer.remove(false);
     this.flashTimer = this.scene.time.delayedCall(constants.enemyHitFlashMs, () => this.applyHpTint());
     return false;
@@ -142,7 +142,12 @@ export class EnemyShip extends Ship {
       return;
     }
     const v = Math.round(255 * (0.5 + (0.5 * this.hp) / maxHp));
-    this.setTint(Phaser.Display.Color.GetColor(v, v, v));
+    // setTint keeps the tint mode, so undo a white flash explicitly
+    this.setTint(Phaser.Display.Color.GetColor(v, v, v)).setTintMode(Phaser.TintModes.MULTIPLY);
+  }
+
+  private flashWhite(): void {
+    this.setTint(0xffffff).setTintMode(Phaser.TintModes.FILL);
   }
 
   // return to the pool; stop timers so an inactive enemy can't fire or evade
@@ -290,7 +295,7 @@ export class EnemyShip extends Ship {
       loop: true,
       callback: () => {
         lit = !lit;
-        if (lit) this.setTintFill(0xffffff);
+        if (lit) this.flashWhite();
         else this.applyHpTint();
       },
     });

@@ -180,8 +180,8 @@ export const constants = {
   muteButtonMargin: 10,
   // ship FX (WebGL only): a soft neon glow in the ship's color, plus motion blur on the player
   shipGlowStrength: 3,
-  // extra pixels around the sprite so the glow isn't clipped at the texture edge
-  shipFxPadding: 8,
+  // multiplies the glow's reach; it's measured in texture pixels, so it shrinks with the camera zoom
+  shipGlowScale: 4,
   // horizontal blur offset at full player speed
   playerMotionBlur: 2,
 };

@@ -9,7 +9,7 @@
     "@parcel/transformer-webmanifest": "^2.15.4",
     "buffer": "^6.0.3",
     "parcel": "^2.15.4",
-    "phaser": "^3.90.0",
+    "phaser": "^4.2.1",
     "prettier": "^3.9.10",
     "process": "^0.11.10"
   },
