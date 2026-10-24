@@ -108,8 +108,10 @@ export const constants = {
   // how fast they dodge laterally (pixels/sec)
   evasionSpeed: 200,
   bottomMargin: 200,
-  // horizontal joystick offset (px) before touch movement registers
-  touchDeadZone: 12,
+  // ship travel per pixel of finger travel (both in playfield px)
+  touchDragSensitivity: 1,
+  // top speed of the ship gliding after the finger (pixels/sec), so fast flicks don't teleport it
+  touchFollowMaxSpeed: 1500,
   // power-ups: dropped by destroyed enemies
   powerUpDropChance: 0.12,
   powerUpSpeed: 120,
