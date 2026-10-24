@@ -37,11 +37,11 @@ export function generateAllTextures(scene: Phaser.Scene): void {
   drawPowerUpRing(gfx, constants.shieldColor);
   gfx.fillPoints(
     [
-      { x: 7, y: 7 },
-      { x: 17, y: 7 },
-      { x: 17, y: 12 },
-      { x: 12, y: 18 },
-      { x: 7, y: 12 },
+      new Phaser.Math.Vector2(7, 7),
+      new Phaser.Math.Vector2(17, 7),
+      new Phaser.Math.Vector2(17, 12),
+      new Phaser.Math.Vector2(12, 18),
+      new Phaser.Math.Vector2(7, 12),
     ],
     true
   );
@@ -97,10 +97,10 @@ export function generateAllTextures(scene: Phaser.Scene): void {
   enemyGfx.fillStyle(constants.tankColor);
   enemyGfx.fillPoints(
     [
-      { x: 0, y: 0 },
-      { x: 40, y: 0 },
-      { x: 28, y: 36 },
-      { x: 12, y: 36 },
+      new Phaser.Math.Vector2(0, 0),
+      new Phaser.Math.Vector2(40, 0),
+      new Phaser.Math.Vector2(28, 36),
+      new Phaser.Math.Vector2(12, 36),
     ],
     true
   );

@@ -150,7 +150,7 @@ export default class GameScene extends Phaser.Scene {
   }
 
   // scale the playfield to fit the window and centre it. The camera covers the whole canvas:
-  // preFX glows get clipped away when its viewport is offset, and a camera mask hid the whole
+  // ship glows got clipped away when its viewport was offset (v3), and a camera mask hid the whole
   // playfield on some phones. Nothing clips the playfield, so objects that leave it despawn instead
   private fitCamera(width: number, height: number): void {
     const zoom = Math.min(width / constants.width, height / constants.height);

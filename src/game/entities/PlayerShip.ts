@@ -6,7 +6,7 @@ export class PlayerShip extends Ship {
   private inputController: InputController;
   private shield?: Phaser.GameObjects.Arc;
   private invulnerableUntil = 0;
-  private motionBlur?: Phaser.FX.Blur;
+  private motionBlur?: Phaser.Filters.Blur;
 
   constructor(scene: Phaser.Scene, x: number, y: number, input: InputController) {
     super(scene, x, y, 'player', constants.playerSpeed);
@@ -14,7 +14,8 @@ export class PlayerShip extends Ship {
     this.setDragX(constants.playerDrag);
     this.addGlow(constants.playerColor);
     // added after the glow, so the halo smears along with the hull
-    this.motionBlur = this.preFX?.addBlur(0, 0, 0);
+    this.motionBlur = this.filters?.internal.addBlur(0, 0, 0);
+    this.motionBlur?.setPaddingOverride(null);
   }
 
   update(): void {
