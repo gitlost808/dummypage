@@ -13,8 +13,10 @@ export class PlayerShip extends Ship {
     this.inputController = input;
     this.setDragX(constants.playerDrag);
     this.addGlow(constants.playerColor);
-    // added after the glow, so the halo smears along with the hull
-    this.motionBlur = this.filters?.internal.addBlur(0, 0, 0);
+    // added after the glow, so the halo smears along with the hull. Medium quality (1), because
+    // the low-quality shader shadows its `offset` uniform, which some mobile GPUs miscompile,
+    // making the ship vanish whenever it moves
+    this.motionBlur = this.filters?.internal.addBlur(1, 0, 0);
     this.motionBlur?.setPaddingOverride(null);
   }
 

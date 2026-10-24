@@ -182,6 +182,6 @@ export const constants = {
   shipGlowStrength: 3,
   // multiplies the glow's reach; it's measured in texture pixels, so it shrinks with the camera zoom
   shipGlowScale: 4,
-  // horizontal blur offset at full player speed
-  playerMotionBlur: 2,
+  // horizontal blur offset at full player speed (medium-quality blur reaches ~2.4x as far per unit)
+  playerMotionBlur: 1,
 };
