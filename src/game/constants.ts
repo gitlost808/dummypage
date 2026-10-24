@@ -2,7 +2,7 @@ export const constants = {
   // the playfield: a fixed size, scaled to fit the window, so the game plays the same on every screen
   width: 540,
   height: 960,
-  // faint outline around the playfield, so it's clear where it ends on wide screens
+  // faint lines along the sides of the playfield, so it's clear where it ends on wide screens
   playfieldBorderColor: 0x268bd2,
   playfieldBorderAlpha: 0.35,
   playerSpeed: 300,
