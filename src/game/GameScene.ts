@@ -52,6 +52,10 @@ export default class GameScene extends Phaser.Scene {
     this.nextFireAt = 0;
     // gameOver() pauses the clock, and the Clock plugin survives the restart
     this.time.paused = false;
+    // the clock only catches up with the game loop on the scene's first frame, so until then it still
+    // reads the time the game launched; after a long look at the title screen, the spawner would count
+    // all that time as played and open the run at a high difficulty, with the first wave already over
+    this.time.now = this.game.loop.time;
     playMusic(this, 'main');
 
     // the playfield has a fixed size; the camera scales it to fit the window (see fitCamera)
