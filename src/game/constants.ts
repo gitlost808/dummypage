@@ -119,10 +119,26 @@ export const constants = {
   shieldColor: 0x2aa198,
   spreadColor: 0x268bd2,
   bombColor: 0xcb4b16,
-  // shields stack up to this many layers, drawn as rings around the ship (radii in px)
+  // shields stack up to this many layers, drawn as glowing ellipses around the ship
   shieldMaxLayers: 3,
-  shieldRadius: 24,
+  // half-width of the innermost ellipse and the step out to each next one (px); height is width * aspect
+  shieldRadiusX: 26,
   shieldLayerGap: 6,
+  shieldAspect: 0.8,
+  // bright line along the middle of the rim, and the reach of the rim's glow (px)
+  shieldCoreColor: 0xb8f0e8,
+  shieldGlowBlur: 8,
+  // streaks of light orbiting each rim (radians/sec); neighbouring layers spin opposite ways
+  shieldGlintsPerLayer: 2,
+  shieldGlintSpeed: 2.4,
+  shieldGlintSize: { width: 14, height: 5 },
+  // a new layer snaps in from this scale; layers breathe between full and this alpha;
+  // the layers left flinch to this scale when the outermost one pops (durations in ms)
+  shieldSpawnScale: 1.3,
+  shieldSpawnMs: 200,
+  shieldPulseAlpha: 0.6,
+  shieldPulseMs: 600,
+  shieldFlinchScale: 1.12,
   // each layer held makes a shield drop this much likelier to be skipped (1/3: 1 in 3 at one layer, none at three)
   shieldDropFalloffPerLayer: 1 / 3,
   // brief invulnerability after a shield layer absorbs a hit (in ms)

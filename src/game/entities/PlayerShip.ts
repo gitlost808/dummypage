@@ -2,11 +2,11 @@ import Phaser from 'phaser';
 import { Ship } from './Ship';
 import { InputController } from '../input/InputController';
 import { constants } from '../constants';
+import { Shield } from './Shield';
 
 export class PlayerShip extends Ship {
   private inputController: InputController;
-  // shield layers, innermost first; a hit pops the outermost
-  private shields: Phaser.GameObjects.Arc[] = [];
+  private shield: Shield;
   private invulnerableUntil = 0;
   private motionBlur?: Phaser.Filters.Blur;
   // where a touch drag is taking the ship (playfield x)
@@ -16,6 +16,7 @@ export class PlayerShip extends Ship {
   constructor(scene: Phaser.Scene, x: number, y: number, input: InputController) {
     super(scene, x, y, 'player', constants.playerSpeed);
     this.inputController = input;
+    this.shield = new Shield(scene);
     this.setDragX(constants.playerDrag);
     this.addGlow(constants.playerColor);
     // added after the glow, so the halo smears along with the hull
@@ -28,7 +29,7 @@ export class PlayerShip extends Ship {
     const speed = this.inputController.dragging ? this.followDrag() : this.steer();
     this.updateMotionBlur(speed);
 
-    for (const shield of this.shields) shield.setPosition(this.x, this.y);
+    this.shield.update(this.x, this.y);
   }
 
   // keys: full speed while one is held; returns the speed for the motion blur
@@ -76,25 +77,12 @@ export class PlayerShip extends Ship {
   }
 
   get shieldLayers(): number {
-    return this.shields.length;
+    return this.shield.count;
   }
 
   // returns false if the shield is already at full strength
   addShieldLayer(): boolean {
-    if (this.shields.length >= constants.shieldMaxLayers) return false;
-    const radius = constants.shieldRadius + this.shields.length * constants.shieldLayerGap;
-    const shield = this.scene.add
-      .circle(this.x, this.y, radius)
-      .setStrokeStyle(2, constants.shieldColor, 0.9);
-    this.shields.push(shield);
-    this.scene.tweens.add({
-      targets: shield,
-      alpha: 0.4,
-      duration: 500,
-      yoyo: true,
-      repeat: -1,
-    });
-    return true;
+    return this.shield.add(this.x, this.y);
   }
 
   // after a shield layer breaks, hits pass straight through rather than registering as a second shield hit
@@ -104,9 +92,8 @@ export class PlayerShip extends Ship {
 
   // returns true if the hit was absorbed by a shield layer
   absorbHit(): boolean {
-    if (this.shields.length === 0) return false;
+    if (!this.shield.pop()) return false;
 
-    this.breakShield();
     this.invulnerableUntil = this.scene.time.now + constants.shieldInvulnerabilityMs;
     this.scene.tweens.add({
       targets: this,
@@ -117,19 +104,5 @@ export class PlayerShip extends Ship {
       onComplete: () => this.setAlpha(1),
     });
     return true;
-  }
-
-  private breakShield(): void {
-    const shield = this.shields.pop();
-    if (!shield) return;
-
-    this.scene.tweens.killTweensOf(shield);
-    this.scene.tweens.add({
-      targets: shield,
-      scale: 1.8,
-      alpha: 0,
-      duration: 250,
-      onComplete: () => shield.destroy(),
-    });
   }
 }
