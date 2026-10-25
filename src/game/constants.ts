@@ -151,6 +151,9 @@ export const constants = {
   tankHp: 3,
   tankPoints: 30,
   tankSpeedMultiplier: 0.6,
+  // a hit knocks a tank back: its fall speed drops by this multiple of itself, then recovers.
+  // Without it, a tank close to the player lands on it before the third hit, so it can't be shot down
+  tankRecoil: 1.5,
   // gunner: fires aimed shots at the player
   gunnerColor: 0xd33682,
   gunnerPoints: 20,
