@@ -119,6 +119,21 @@ export const constants = {
   shieldColor: 0x2aa198,
   spreadColor: 0x268bd2,
   bombColor: 0xcb4b16,
+  // the shield: a glowing ellipse around the ship; half-width (px), and height as a fraction of width
+  shieldRadiusX: 26,
+  shieldAspect: 0.8,
+  // bright line along the middle of the rim, and the reach of the rim's glow (px)
+  shieldCoreColor: 0xb8f0e8,
+  shieldGlowBlur: 8,
+  // streaks of light orbiting the rim (radians/sec)
+  shieldGlints: 2,
+  shieldGlintSpeed: 2.4,
+  shieldGlintSize: { width: 14, height: 5 },
+  // the shield snaps in from this scale, then breathes between full and this alpha (durations in ms)
+  shieldSpawnScale: 1.3,
+  shieldSpawnMs: 200,
+  shieldPulseAlpha: 0.6,
+  shieldPulseMs: 600,
   // brief invulnerability after the shield absorbs a hit (in ms)
   shieldInvulnerabilityMs: 1000,
   spreadDurationMs: 8000,
