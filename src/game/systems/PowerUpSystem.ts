@@ -1,15 +1,9 @@
 import Phaser from 'phaser';
 import { constants } from '../constants';
-import { PowerUp, PowerUpType } from '../entities/PowerUp';
+import { PowerUp, PowerUpType, powerUpKinds } from '../entities/PowerUp';
 import { PlayerShip } from '../entities/PlayerShip';
 import { playSound } from '../utils/audio';
 import { scale } from './EnemySpawner';
-
-const powerUpColors: Record<PowerUpType, number> = {
-  shield: constants.shieldColor,
-  spread: constants.spreadColor,
-  bomb: constants.bombColor,
-};
 
 const toHex = (color: number) => `#${color.toString(16).padStart(6, '0')}`;
 
@@ -86,7 +80,7 @@ export class PowerUpSystem {
         break;
     }
 
-    this.showLabel(x, y, label, powerUpColors[type]);
+    this.showLabel(x, y, label, powerUpKinds[type].color);
   }
 
   private showLabel(x: number, y: number, text: string, color: number): void {

@@ -181,6 +181,10 @@ export const constants = {
   explosionDeathParticles: 30,
   deathShakeMs: 250,
   deathShakeIntensity: 0.01,
+  // title screen: the name's centre and the top of the legend under it
+  titleColor: 0x268bd2,
+  titleY: 150,
+  titleLegendY: 260,
   // game-over screen
   gameOverColor: 0xdc322f,
   gameOverBackdropAlpha: 0.6,

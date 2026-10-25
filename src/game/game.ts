@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import BootScene from './BootScene';
 import BackgroundScene from './BackgroundScene';
+import TitleScene from './TitleScene';
 import GameScene from './GameScene';
 import { constants } from './constants';
 import { preferHighpShaders } from './utils/shader-precision';
@@ -26,7 +27,7 @@ const config: Phaser.Types.Core.GameConfig = {
     activePointers: 2,
   },
   // later scenes render on top
-  scene: [BootScene, BackgroundScene, GameScene],
+  scene: [BootScene, BackgroundScene, TitleScene, GameScene],
 };
 
 new Phaser.Game(config);

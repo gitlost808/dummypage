@@ -19,6 +19,7 @@ import { MusicButton } from './ui/MusicButton';
 import { WaveBanner } from './ui/WaveBanner';
 import { BossHealthBar } from './ui/BossHealthBar';
 import { playMusic, playSound, randomDetune, stopMusic } from './utils/audio';
+import { fitPlayfieldCamera } from './utils/playfield';
 
 export default class GameScene extends Phaser.Scene {
   private inputType!: CombinedInput;
@@ -177,15 +178,9 @@ export default class GameScene extends Phaser.Scene {
     });
   }
 
-  // scale the playfield to fit the window and centre it. The camera covers the whole canvas:
-  // ship glows got clipped away when its viewport was offset (v3), and a camera mask hid the whole
-  // playfield on some phones. Nothing clips the playfield, so objects that leave it despawn instead
+  // nothing clips the playfield, so objects that leave it despawn instead
   private fitCamera(width: number, height: number): void {
-    const zoom = Math.min(width / constants.width, height / constants.height);
-    this.cameras.main
-      .setViewport(0, 0, width, height)
-      .setZoom(zoom)
-      .centerOn(constants.width / 2, constants.height / 2);
+    const zoom = fitPlayfieldCamera(this.cameras.main, width, height);
 
     // only the sides get a border, running the full height of the window (through any bars above
     // and below the playfield), since enemies enter at the top and bullets leave at the bottom
