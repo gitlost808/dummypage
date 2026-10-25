@@ -24,7 +24,7 @@ export default class BootScene extends Phaser.Scene {
       Object.values(enemyKinds).map(({ texture, color }) => ({ key: texture, color }))
     );
     this.scene.launch('BackgroundScene');
-    this.scene.start('GameScene');
+    this.scene.start('TitleScene');
     this.input.addPointer(1);
   }
 }

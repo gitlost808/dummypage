@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { Ship } from './Ship';
 import { PlayerShip } from './PlayerShip';
 import { EnemyProjectile } from './EnemyProjectile';
+import { LegendEntry } from './LegendEntry';
 import { constants } from '../constants';
 import { playSound, randomDetune } from '../utils/audio';
 
@@ -10,6 +11,13 @@ type BossAttack = (typeof constants.bossPhases)[number]['attacks'][number];
 // one boss, reused for every encounter: it slides in, patrols the top of the screen and cycles
 // through telegraphed attacks that get fiercer as it loses hit points
 export class Boss extends Ship {
+  public static readonly legend: LegendEntry = {
+    name: 'Boss',
+    description: `Every ${constants.bossEveryWaves}th wave. Gets fiercer as it weakens`,
+    texture: 'boss',
+    color: constants.bossColor,
+  };
+
   private target: PlayerShip;
   private projectilePool: Phaser.Physics.Arcade.Group;
   private attackTimer?: Phaser.Time.TimerEvent;
@@ -25,7 +33,7 @@ export class Boss extends Ship {
   private telegraphing = false;
 
   constructor(scene: Phaser.Scene, target: PlayerShip, projectilePool: Phaser.Physics.Arcade.Group) {
-    super(scene, constants.width / 2, 0, 'boss', 0);
+    super(scene, constants.width / 2, 0, Boss.legend.texture, 0);
     this.target = target;
     this.projectilePool = projectilePool;
     // enters from above the screen

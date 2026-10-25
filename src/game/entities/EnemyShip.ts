@@ -5,6 +5,7 @@ import { constants } from "../constants";
 import { EnemyProjectile } from "./EnemyProjectile";
 import { playSound, randomDetune } from "../utils/audio";
 import { glowTextureKey } from "../utils/glow";
+import { LegendEntry } from "./LegendEntry";
 
 export type EnemyBehavior = "basic" | "strafer" | "diver" | "hover";
 // what the enemy is (movement comes from its behavior)
@@ -12,10 +13,32 @@ export type EnemyKind = "normal" | "tank" | "gunner";
 // straight down, one shot aimed at the player, or an aimed fan
 export type EnemyShot = "straight" | "aimed" | "fan";
 
-export const enemyKinds: Record<EnemyKind, { texture: string; color: number; hp: number; points: number }> = {
-  normal: { texture: "enemy", color: constants.enemyColor, hp: 1, points: constants.pointsPerHit },
-  tank: { texture: "enemy-tank", color: constants.tankColor, hp: constants.tankHp, points: constants.tankPoints },
-  gunner: { texture: "enemy-gunner", color: constants.gunnerColor, hp: 1, points: constants.gunnerPoints },
+// every kind of enemy; the title screen legend lists them all
+export const enemyKinds: Record<EnemyKind, LegendEntry & { hp: number; points: number }> = {
+  normal: {
+    name: "Fighter",
+    description: "One hit kills it. Some chase you, some dive",
+    texture: "enemy",
+    color: constants.enemyColor,
+    hp: 1,
+    points: constants.pointsPerHit,
+  },
+  tank: {
+    name: "Tank",
+    description: `Slow and tough: takes ${constants.tankHp} hits to destroy`,
+    texture: "enemy-tank",
+    color: constants.tankColor,
+    hp: constants.tankHp,
+    points: constants.tankPoints,
+  },
+  gunner: {
+    name: "Gunner",
+    description: "Hovers near the top and fires aimed shots",
+    texture: "enemy-gunner",
+    color: constants.gunnerColor,
+    hp: 1,
+    points: constants.gunnerPoints,
+  },
 };
 
 type EnemyProfile = {
