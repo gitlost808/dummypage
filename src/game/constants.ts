@@ -43,12 +43,13 @@ export const constants = {
   // after the curve levels off, spawn budget and on-screen cap keep growing (+100% per overtimeMs), so long runs never plateau
   overtimeStartMs: 240000,
   overtimeMs: 600000,
-  // the [easy, hard] ranges below are interpolated by difficulty
+  // the [easy, hard] ranges below are interpolated by difficulty. The easy ends set the opening, which
+  // is replayed every run, so they keep it brisk; their pull fades as difficulty climbs
   // threat budget: every enemy costs threat; budget builds up over time and pays for spawns
   enemyThreatCost: { normal: 1, gunner: 2, tank: 3 },
-  threatPerSecond: [0.5, 3.5] as [number, number],
+  threatPerSecond: [0.8, 3.5] as [number, number],
   // spawns wait while the enemies on screen add up to this much threat
-  maxThreatOnScreen: [4, 14] as [number, number],
+  maxThreatOnScreen: [5, 14] as [number, number],
   // unspent budget is capped (at least the priciest enemy), so a quiet moment doesn't turn into a burst
   maxBankedThreat: 4,
   spawnTickMs: 100,
@@ -78,8 +79,8 @@ export const constants = {
   // spawn weights, from the difficulty each one unlocks at: [weight when unlocked, weight at difficulty 1]
   enemyKindWeights: {
     normal: { unlockAt: 0, weight: [1, 1] as [number, number] },
-    tank: { unlockAt: 0.3, weight: [0.15, 0.4] as [number, number] },
-    gunner: { unlockAt: 0.45, weight: [0.15, 0.35] as [number, number] },
+    tank: { unlockAt: 0.2, weight: [0.15, 0.4] as [number, number] },
+    gunner: { unlockAt: 0.35, weight: [0.15, 0.35] as [number, number] },
   },
   // movement of normal enemies; tanks fall straight and gunners hover
   enemyBehaviorWeights: {
@@ -88,7 +89,7 @@ export const constants = {
     diver: { unlockAt: 0.35, weight: [0.3, 1] as [number, number] },
   },
   enemySpawnMargin: 50,
-  enemySpeed: [100, 340] as [number, number],
+  enemySpeed: [130, 340] as [number, number],
   // sideways tracking speed, still capped by enemyMaxLateralSpeedRatio
   enemyLateralSpeed: [70, 230] as [number, number],
   // enemies hold fire for the first few seconds
