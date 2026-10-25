@@ -9,6 +9,9 @@ export const constants = {
   playerDrag: 600,
   projectileSpeed: 500,
   enemyProjectileSpeed: 260,
+  // straight shots fall at least this much faster than the ship that fired them; late enemies
+  // outrun enemyProjectileSpeed, so their shots would otherwise trail out of the back of the hull
+  enemyProjectileMinLead: 80,
   enemyProjectileColor: 0xff6b6b,
   maxProjectiles: 50,
   playerColor: 0x859900,
@@ -202,7 +205,8 @@ export const constants = {
   bossBannerText: 'WARNING: BOSS',
   // hit points and points at the first encounter; each later encounter adds the growth fraction of the base
   bossHp: 80,
-  bossHpGrowth: 0.5,
+  // your firepower never grows, so keep this modest: fights already get longer with every encounter
+  bossHpGrowth: 0.3,
   bossPoints: 500,
   // later encounters also attack more often (cooldowns shrink by 1 + growth per encounter)
   bossAttackRateGrowth: 0.15,

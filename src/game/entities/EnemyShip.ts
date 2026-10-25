@@ -403,6 +403,8 @@ export class EnemyShip extends Ship {
 
   private fireProjectile(): void {
     if (!this.active || !this.projectilePool || !this.target) return;
+    // a diving ship outruns any shot it fires, and it is the threat itself, so it holds fire
+    if (this.diveState === "diving") return;
 
     const y = this.y + this.hullHeight * 0.5;
     const aimed = this.profile.kind === "gunner";
@@ -415,8 +417,10 @@ export class EnemyShip extends Ship {
     playSound(this.scene, "enemy-shoot", randomDetune());
 
     if (!aimed) {
-      // fire straight down (mirrors player straight up)
-      bullet.reset(this.x, y, 0, constants.enemyProjectileSpeed);
+      // fire straight down (mirrors player straight up), always pulling ahead of the ship
+      const fallSpeed = (this.body as Phaser.Physics.Arcade.Body).velocity.y;
+      const speed = Math.max(constants.enemyProjectileSpeed, fallSpeed + constants.enemyProjectileMinLead);
+      bullet.reset(this.x, y, 0, speed);
       return;
     }
 
