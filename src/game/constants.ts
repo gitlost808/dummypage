@@ -119,7 +119,13 @@ export const constants = {
   shieldColor: 0x2aa198,
   spreadColor: 0x268bd2,
   bombColor: 0xcb4b16,
-  // brief invulnerability after the shield absorbs a hit (in ms)
+  // shields stack up to this many layers, drawn as rings around the ship (radii in px)
+  shieldMaxLayers: 3,
+  shieldRadius: 24,
+  shieldLayerGap: 6,
+  // each layer held makes a shield drop this much likelier to be skipped (1/3: 1 in 3 at one layer, none at three)
+  shieldDropFalloffPerLayer: 1 / 3,
+  // brief invulnerability after a shield layer absorbs a hit (in ms)
   shieldInvulnerabilityMs: 1000,
   spreadDurationMs: 8000,
   // horizontal speed of the outer spread projectiles (pixels/sec)
