@@ -2,10 +2,11 @@ import Phaser from 'phaser';
 import { Ship } from './Ship';
 import { InputController } from '../input/InputController';
 import { constants } from '../constants';
+import { Shield } from './Shield';
 
 export class PlayerShip extends Ship {
   private inputController: InputController;
-  private shield?: Phaser.GameObjects.Arc;
+  private shield: Shield;
   private invulnerableUntil = 0;
   private motionBlur?: Phaser.Filters.Blur;
   // where a touch drag is taking the ship (playfield x)
@@ -15,6 +16,7 @@ export class PlayerShip extends Ship {
   constructor(scene: Phaser.Scene, x: number, y: number, input: InputController) {
     super(scene, x, y, 'player', constants.playerSpeed);
     this.inputController = input;
+    this.shield = new Shield(scene);
     this.setDragX(constants.playerDrag);
     this.addGlow(constants.playerColor);
     // added after the glow, so the halo smears along with the hull
@@ -27,7 +29,7 @@ export class PlayerShip extends Ship {
     const speed = this.inputController.dragging ? this.followDrag() : this.steer();
     this.updateMotionBlur(speed);
 
-    this.shield?.setPosition(this.x, this.y);
+    this.shield.update(this.x, this.y);
   }
 
   // keys: full speed while one is held; returns the speed for the motion blur
@@ -75,17 +77,7 @@ export class PlayerShip extends Ship {
   }
 
   activateShield(): void {
-    if (this.shield) return;
-    this.shield = this.scene.add
-      .circle(this.x, this.y, 24)
-      .setStrokeStyle(2, constants.shieldColor, 0.9);
-    this.scene.tweens.add({
-      targets: this.shield,
-      alpha: 0.4,
-      duration: 500,
-      yoyo: true,
-      repeat: -1,
-    });
+    this.shield.activate(this.x, this.y);
   }
 
   // after the shield breaks, hits pass straight through rather than registering as a second shield hit
@@ -95,9 +87,8 @@ export class PlayerShip extends Ship {
 
   // returns true if the hit was absorbed by the shield
   absorbHit(): boolean {
-    if (!this.shield) return false;
+    if (!this.shield.shatter()) return false;
 
-    this.breakShield();
     this.invulnerableUntil = this.scene.time.now + constants.shieldInvulnerabilityMs;
     this.scene.tweens.add({
       targets: this,
@@ -108,20 +99,5 @@ export class PlayerShip extends Ship {
       onComplete: () => this.setAlpha(1),
     });
     return true;
-  }
-
-  private breakShield(): void {
-    const shield = this.shield;
-    if (!shield) return;
-    this.shield = undefined;
-
-    this.scene.tweens.killTweensOf(shield);
-    this.scene.tweens.add({
-      targets: shield,
-      scale: 1.8,
-      alpha: 0,
-      duration: 250,
-      onComplete: () => shield.destroy(),
-    });
   }
 }
