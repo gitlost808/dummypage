@@ -66,6 +66,9 @@ export class EnemyShip extends Ship {
   // basic enemies drift sideways at this speed instead of tracking the player
   private driftVx = 0;
 
+  // taken off the fall speed after a hit that didn't kill (see damage), fading out
+  private recoilVy = 0;
+
   // hover state: descend to hoverY, stay until hoverEndsAt (0 until arrived), then leave upwards
   private hoverY = 0;
   private hoverEndsAt = 0;
@@ -110,6 +113,7 @@ export class EnemyShip extends Ship {
     this.hoverY = Phaser.Math.FloatBetween(constants.gunnerHoverYMin, constants.gunnerHoverYMax) * constants.height;
     this.hoverEndsAt = 0;
     this.isLeaving = false;
+    this.recoilVy = 0;
     this.isEvading = false;
     this.setVelocity(0, 0);
     this.projectilePool = projectilePool;
@@ -134,6 +138,9 @@ export class EnemyShip extends Ship {
   public damage(): boolean {
     this.hp--;
     if (this.hp <= 0) return true;
+
+    // knocked back, so the next hits can land before it reaches the player
+    this.recoilVy = this.profile.speed * constants.tankRecoil;
 
     // flash white, then darken to show the remaining hit points
     this.flashWhite();
@@ -190,7 +197,10 @@ export class EnemyShip extends Ship {
       if (now >= this.diveStateEndsAt) this.diveState = "none";
     } else {
       if (this.profile.behavior === "hover") this.updateHover(dt);
-      else this.setVelocityY(this.profile.speed);
+      else {
+        this.recoilVy = this.eased(this.recoilVy, 0, dt);
+        this.setVelocityY(this.profile.speed - this.recoilVy);
+      }
       if (this.isEvading) {
         this.steerX(this.evasionDir * constants.evasionSpeed, dt);
       } else {
