@@ -55,15 +55,11 @@ export default class GameScene extends Phaser.Scene {
     this.fitCamera(this.scale.width, this.scale.height);
     this.physics.world.setBounds(0, 0, constants.width, constants.height);
 
-    // keyboard always works; add touch controls when touch is supported
-    // (touch-capable desktops report touch too, so it can't replace the keyboard)
-    const inputs: InputController[] = [new KeyboardInput(this)];
-    if (this.sys.game.device.input.touch) {
-      const touch = new TouchInput(this);
-      inputs.push(touch);
-      // keyboard players don't need the touch hints
-      this.input.keyboard.once('keydown', () => touch.fadeHints());
-    }
+    // keyboard and touch always work together; a mouse click counts as a touch
+    const touch = new TouchInput(this);
+    // keyboard players don't need the touch hints
+    this.input.keyboard.once('keydown', () => touch.fadeHints());
+    const inputs: InputController[] = [new KeyboardInput(this), touch];
     this.inputType = new CombinedInput(inputs);
 
     const startX = constants.width / 2;

@@ -3,7 +3,8 @@ import { InputController } from './InputController';
 import { constants } from '../constants';
 
 // a finger anywhere on the screen fires, and dragging it moves the ship by the same distance
-// (relative, so the finger never has to cover the ship)
+// (relative, so the finger never has to cover the ship). A mouse works the same way: hold the
+// button to fire and drag to move
 export class TouchInput implements InputController {
   // touch steers by dragging only
   public readonly left = false;
@@ -25,8 +26,9 @@ export class TouchInput implements InputController {
     this.scene = scene;
 
     const { width, height } = constants;
+    const press = scene.sys.game.device.input.touch ? 'Touch' : 'Click';
     this.hints = [
-      scene.add.text(width / 2, height - 90, 'Touch and drag to move', {
+      scene.add.text(width / 2, height - 90, `${press} and drag to move`, {
         fontSize: '16px',
         color: '#ffffff',
       }).setOrigin(0.5).setDepth(6).setAlpha(0.9),
@@ -45,6 +47,8 @@ export class TouchInput implements InputController {
   private onDown(p: Phaser.Input.Pointer, currentlyOver: Phaser.GameObjects.GameObject[]) {
     // ignore taps on UI such as the mute button
     if (currentlyOver.length > 0) return;
+    // only the primary mouse button; a touch reports button 0 too
+    if (p.button !== 0) return;
 
     this.pointers.push(p);
     this.steerWith(p);
@@ -61,6 +65,8 @@ export class TouchInput implements InputController {
   }
 
   private onUp(p: Phaser.Input.Pointer) {
+    // the mouse is one pointer for all buttons, so releasing another button mustn't end the drag
+    if (p.button !== 0) return;
     const index = this.pointers.indexOf(p);
     if (index === -1) return;
     const wasSteering = p === this.steering;
