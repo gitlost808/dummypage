@@ -78,14 +78,17 @@ export default class GameScene extends Phaser.Scene {
     this.waveBanner = new WaveBanner(this);
     this.boss = new Boss(this, this.player, this.enemyProjectiles);
     this.bossHealthBar = new BossHealthBar(this);
-    this.enemySpawner = new EnemySpawner(this, this.player, this.enemyProjectiles, this.boss, (wave, isBoss) => {
-      this.waveBanner.show(wave, isBoss);
+    this.enemySpawner = new EnemySpawner(this, this.player, this.enemyProjectiles, this.boss, (wave, isBoss, escalation) => {
+      this.waveBanner.show(wave, isBoss, escalation);
       if (!isBoss) return;
       playSound(this, 'boss-warn');
       playMusic(this, 'boss', true);
     });
-    this.powerUps = new PowerUpSystem(this, this.player, () =>
-      this.detonateBomb()
+    this.powerUps = new PowerUpSystem(
+      this,
+      this.player,
+      () => this.enemySpawner.getDifficulty(),
+      () => this.detonateBomb()
     );
     this.effects = new EffectsSystem(this);
     this.muteButton = new MuteButton(this);

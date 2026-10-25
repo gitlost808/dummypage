@@ -60,6 +60,21 @@ export const constants = {
   // banner fade in, hold and fade out (in ms)
   waveBannerFadeMs: 250,
   waveBannerHoldMs: 1000,
+  // escalation: the difficulty curve levels off after a few minutes, so each boss beaten unlocks a new
+  // threat, announced under the next wave's banner (held longer then). Later bosses add nothing new;
+  // overtime keeps building
+  escalations: {
+    gunnerFans: { bosses: 1, banner: 'GUNNERS FIRE FANS' },
+    formations: { bosses: 2, banner: 'FORMATIONS INBOUND' },
+    aimedTanks: { bosses: 3, banner: 'TANKS TAKE AIM' },
+  },
+  escalationBannerColor: 0xcb4b16,
+  escalationBannerHoldMs: 2000,
+  // formations: a row of normal enemies falling straight in step, a wall to shoot a gap through.
+  // The chance a normal spawn becomes one, its ships (each costs a normal's threat) and the gap between hulls (px)
+  formationChance: 0.25,
+  formationSize: 3,
+  formationGap: 14,
   // spawn weights, from the difficulty each one unlocks at: [weight when unlocked, weight at difficulty 1]
   enemyKindWeights: {
     normal: { unlockAt: 0, weight: [1, 1] as [number, number] },
@@ -115,8 +130,9 @@ export const constants = {
   touchDragSensitivity: 1,
   // top speed of the ship gliding after the finger (pixels/sec), so fast flicks don't teleport it
   touchFollowMaxSpeed: 1500,
-  // power-ups: dropped by destroyed enemies
-  powerUpDropChance: 0.12,
+  // power-ups: dropped by destroyed enemies. Kills per wave roughly triple as difficulty climbs, so
+  // the chance falls with it (interpolated by difficulty), keeping drops near 3 per wave
+  powerUpDropChance: [0.15, 0.07] as [number, number],
   powerUpSpeed: 120,
   powerUpWeights: { shield: 0.45, spread: 0.4, bomb: 0.15 },
   shieldColor: 0x2aa198,
@@ -179,11 +195,15 @@ export const constants = {
   // a hit knocks a tank back: its fall speed drops by this multiple of itself, then recovers.
   // Without it, a tank close to the player lands on it before the third hit, so it can't be shot down
   tankRecoil: 1.5,
-  // gunner: fires aimed shots at the player
+  // gunner: fires aimed shots at the player (so do tanks, once escalated)
   gunnerColor: 0xd33682,
   gunnerPoints: 20,
   gunnerProjectileSpeed: 220,
+  // aimed shooters fire this much less often than straight ones
   gunnerFireIntervalMultiplier: 1.25,
+  // once escalated, gunners fire fans: shots per fan and the angle between neighbours (radians)
+  gunnerFanShots: 3,
+  gunnerFanSpread: 0.25,
   // random aim offset (radians)
   gunnerAimJitter: 0.08,
   // minimum angle below horizontal for aimed shots (radians), so they always head down

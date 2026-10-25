@@ -3,6 +3,7 @@ import { constants } from '../constants';
 import { PowerUp, PowerUpType } from '../entities/PowerUp';
 import { PlayerShip } from '../entities/PlayerShip';
 import { playSound } from '../utils/audio';
+import { scale } from './EnemySpawner';
 
 const powerUpColors: Record<PowerUpType, number> = {
   shield: constants.shieldColor,
@@ -18,12 +19,14 @@ export class PowerUpSystem {
   private powerUps: Phaser.Physics.Arcade.Group;
   private statusText: Phaser.GameObjects.Text;
   private onBomb: () => void;
+  private getDifficulty: () => number;
 
   private spreadEndsAt = 0;
 
-  constructor(scene: Phaser.Scene, player: PlayerShip, onBomb: () => void) {
+  constructor(scene: Phaser.Scene, player: PlayerShip, getDifficulty: () => number, onBomb: () => void) {
     this.scene = scene;
     this.player = player;
+    this.getDifficulty = getDifficulty;
     this.onBomb = onBomb;
 
     this.powerUps = scene.physics.add.group({ runChildUpdate: true });
@@ -39,7 +42,7 @@ export class PowerUpSystem {
   }
 
   public maybeDrop(x: number, y: number): void {
-    if (Math.random() >= constants.powerUpDropChance) return;
+    if (Math.random() >= scale(constants.powerUpDropChance, this.getDifficulty())) return;
     const type = this.pickType();
     // shields thin out as they stack, so spare layers stay rare; spread and bomb odds don't change
     const skipChance = this.player.shieldLayers * constants.shieldDropFalloffPerLayer;
