@@ -1,10 +1,13 @@
 import {manifest, version} from '@parcel/service-worker';
 
+// the WebWorker lib types the global scope as a dedicated worker; this script runs as a service worker
+declare const self: ServiceWorkerGlobalScope;
+
 async function install() {
   const cache = await caches.open(version);
   await cache.addAll(manifest);
 }
-addEventListener("install", e => e.waitUntil(install()));
+self.addEventListener("install", e => e.waitUntil(install()));
 
 async function activate() {
   const keys = await caches.keys();
@@ -12,7 +15,7 @@ async function activate() {
     keys.map(key => key !== version && caches.delete(key))
   );
 }
-addEventListener("activate", e => e.waitUntil(activate()));
+self.addEventListener("activate", e => e.waitUntil(activate()));
 
 self.addEventListener('fetch', (event: FetchEvent) => {
   event.respondWith(

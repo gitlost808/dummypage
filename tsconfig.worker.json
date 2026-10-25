@@ -1,0 +1,10 @@
+{
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+        // Phaser's types need a DOM, and no worker uses Phaser
+        "types": [],
+        "lib": ["ESNext", "WebWorker"],
+    },
+    "include": ["src/**/service-worker.ts", "src/game/music/worker.ts"],
+    "exclude": [],
+}
