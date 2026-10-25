@@ -4,6 +4,7 @@ import { synthesize } from './synth';
 import { sounds, SoundKey } from './sounds';
 
 const mutedKey = 'galactic-skirmish:muted';
+const musicOffKey = 'galactic-skirmish:music-off';
 
 // synthesize every sound into the audio cache, like generateAllTextures does for textures
 export function generateAllSounds(scene: Phaser.Scene): void {
@@ -22,6 +23,8 @@ export function generateAllSounds(scene: Phaser.Scene): void {
 const musicKey = 'music';
 // whether a run is under way, so the music can start as soon as it's rendered
 let musicWanted = false;
+// the music's own switch; it keeps playing muted, so switching it back on doesn't restart it
+let musicOff = loadFlag(musicOffKey);
 
 // render the background music in a worker and add it to the audio cache once it's ready
 export function generateMusic(scene: Phaser.Scene): void {
@@ -51,7 +54,17 @@ export function startMusic(scene: Phaser.Scene): void {
 
 function playMusic(sound: Phaser.Sound.BaseSoundManager): void {
   const music = sound.get(musicKey) ?? sound.add(musicKey);
-  music.play({ loop: true, volume: constants.musicVolume });
+  music.play({ loop: true, volume: constants.musicVolume, mute: musicOff });
+}
+
+export function isMusicOn(): boolean {
+  return !musicOff;
+}
+
+export function toggleMusic(scene: Phaser.Scene): void {
+  musicOff = !musicOff;
+  saveFlag(musicOffKey, musicOff);
+  scene.sound.get<Phaser.Sound.WebAudioSound>(musicKey)?.setMute(musicOff);
 }
 
 // fade out; tweens run even while the scene clock is paused on game over
@@ -80,18 +93,21 @@ export function randomDetune(): Phaser.Types.Sound.SoundConfig {
   return { detune: Phaser.Math.Between(-constants.soundDetuneCents, constants.soundDetuneCents) };
 }
 
+export const loadMuted = () => loadFlag(mutedKey);
+export const saveMuted = (muted: boolean) => saveFlag(mutedKey, muted);
+
 // storage can be unavailable (private mode, blocked site data), so never throw
-export function loadMuted(): boolean {
+function loadFlag(key: string): boolean {
   try {
-    return localStorage.getItem(mutedKey) === 'true';
+    return localStorage.getItem(key) === 'true';
   } catch {
     return false;
   }
 }
 
-export function saveMuted(muted: boolean): void {
+function saveFlag(key: string, value: boolean): void {
   try {
-    localStorage.setItem(mutedKey, String(muted));
+    localStorage.setItem(key, String(value));
   } catch {
     // ignore, the setting just won't survive a reload
   }

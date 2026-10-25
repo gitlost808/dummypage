@@ -229,7 +229,9 @@ export const constants = {
   // background music sits under the sound effects, and fades out on game over
   musicVolume: 0.5,
   musicFadeOutMs: 800,
-  muteButtonMargin: 10,
+  // the sound and music buttons in the top-right corner
+  toggleButtonMargin: 10,
+  toggleButtonGap: 12,
   // ship FX (WebGL only): a soft neon glow in the ship's color, plus motion blur on the player
   shipGlowStrength: 3,
   // multiplies the glow's reach; it's measured in texture pixels, so it shrinks with the camera zoom

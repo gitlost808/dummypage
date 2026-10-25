@@ -15,6 +15,7 @@ import { CombinedInput } from './input/CombinedInput';
 import { InputController } from './input/InputController';
 import { GameOverOverlay } from './ui/GameOverOverlay';
 import { MuteButton } from './ui/MuteButton';
+import { MusicButton } from './ui/MusicButton';
 import { WaveBanner } from './ui/WaveBanner';
 import { BossHealthBar } from './ui/BossHealthBar';
 import { playSound, randomDetune, startMusic, stopMusic } from './utils/audio';
@@ -30,6 +31,7 @@ export default class GameScene extends Phaser.Scene {
   private effects!: EffectsSystem;
   private gameOverOverlay?: GameOverOverlay;
   private muteButton!: MuteButton;
+  private musicButton!: MusicButton;
   private waveBanner!: WaveBanner;
   private boss!: Boss;
   private bossHealthBar!: BossHealthBar;
@@ -85,6 +87,7 @@ export default class GameScene extends Phaser.Scene {
     );
     this.effects = new EffectsSystem(this);
     this.muteButton = new MuteButton(this);
+    this.musicButton = new MusicButton(this);
 
     // collisions; checked pair by pair, so a second hit in the frame the shield breaks is skipped too
     const canHitPlayer = () => !this.player.isInvulnerable;
