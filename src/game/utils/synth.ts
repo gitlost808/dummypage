@@ -23,7 +23,7 @@ export type SoundLayer = {
 };
 
 // mixes the layers into one mono buffer of samples in -1..1
-export function synthesize(layers: SoundLayer[], sampleRate: number, rng: Rng = Math.random): Float32Array {
+export function synthesize(layers: SoundLayer[], sampleRate: number, rng: Rng = Math.random): Float32Array<ArrayBuffer> {
   const seconds = Math.max(...layers.map((layer) => (layer.delay ?? 0) + layer.duration));
   const out = new Float32Array(Math.ceil(seconds * sampleRate));
   for (const layer of layers) renderLayer(layer, out, sampleRate, rng);

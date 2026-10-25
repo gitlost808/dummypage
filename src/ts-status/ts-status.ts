@@ -242,7 +242,7 @@ async function runner() {
   setupCopyButton();
   setupListButton();
 
-  if ("false" === document.querySelector(".subcontainer > p")?.dataset.hidden) {
+  if ("false" === document.querySelector<HTMLElement>(".subcontainer > p")?.dataset.hidden) {
     return;
   }
 

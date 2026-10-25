@@ -1,9 +1,18 @@
 {
+    // page code; the worker scripts have no DOM, so tsconfig.worker.json checks them against the
+    // WebWorker lib instead (the two libs conflict when loaded together)
     "compilerOptions": {
         "types": ["phaser"],
         "module": "esnext",
         "moduleResolution": "bundler",
         "resolveJsonModule": true,
-        "lib": ["ESNext", "DOM", "DOM.Iterable", "WebWorker"],
-    }
+        "noEmit": true,
+        // TypeScript 6 made strict the default; the code was written without it
+        "strict": false,
+        // Phaser's declarations don't all pass the newer compiler's checks
+        "skipLibCheck": true,
+        "lib": ["ESNext", "DOM", "DOM.Iterable"],
+    },
+    "include": ["src"],
+    "exclude": ["src/**/service-worker.ts", "src/game/music/worker.ts"],
 }

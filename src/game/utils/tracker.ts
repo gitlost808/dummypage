@@ -14,7 +14,7 @@ export type Song = {
   drums: { kit: Record<string, SoundLayer[]>; hits: string }[];
 };
 
-export function renderSong(song: Song, sampleRate: number): Float32Array {
+export function renderSong(song: Song, sampleRate: number): Float32Array<ArrayBuffer> {
   const stepSeconds = 60 / song.bpm / song.stepsPerBeat;
   const layers: SoundLayer[] = [];
   let steps = 0;

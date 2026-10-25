@@ -22,7 +22,7 @@ export class MusicButton extends ToggleButton {
     // stems, and the beam joining them
     this.fillRect(8, 5, 2, 14);
     this.fillRect(20, 2, 2, 14);
-    this.fillPoints([{ x: 8, y: 5 }, { x: 22, y: 2 }, { x: 22, y: 6 }, { x: 8, y: 9 }], true);
+    this.fillPoints([[8, 5], [22, 2], [22, 6], [8, 9]].map(([x, y]) => new Phaser.Math.Vector2(x, y)), true);
 
     if (!on) this.lineBetween(2, 22, 22, 2);
   }
