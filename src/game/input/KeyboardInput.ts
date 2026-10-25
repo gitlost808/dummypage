@@ -7,7 +7,7 @@ export class KeyboardInput implements InputController {
   public right = false;
   // keys never drag
   public readonly dragging = false;
-  public dragX = 0;
+  public readonly targetX = 0;
   public fire = false;
   public firePressed = false;
 
