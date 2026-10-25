@@ -92,10 +92,14 @@ export class Boss extends Ship {
     else this.clearTint();
   }
 
-  private get phase() {
+  // 0 at full hit points, one more for each threshold passed
+  public get phaseIndex(): number {
     const fraction = this.hpFraction;
-    const index = constants.bossPhaseThresholds.filter((threshold) => fraction < threshold).length;
-    return constants.bossPhases[index];
+    return constants.bossPhaseThresholds.filter((threshold) => fraction < threshold).length;
+  }
+
+  private get phase() {
+    return constants.bossPhases[this.phaseIndex];
   }
 
   // sway across the top of the screen, faster in later phases

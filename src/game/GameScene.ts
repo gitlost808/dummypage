@@ -156,7 +156,7 @@ export default class GameScene extends Phaser.Scene {
         if (!this.boss.active) return;
         const { x, y } = proj as Projectile;
         (proj as Projectile).disableBody(true, true);
-        if (this.boss.damage()) return this.defeatBoss();
+        if (this.damageBoss()) return;
         this.effects.explode(x, y, 0xffffff, constants.enemyHitSparkParticles);
         playSound(this, 'enemy-hit');
       },
@@ -245,10 +245,22 @@ export default class GameScene extends Phaser.Scene {
       .forEach((bullet) => (bullet as EnemyProjectile).disableBody(true, true));
     this.scoreSystem.addPoints(points);
     // the boss just takes a chunk of damage
-    if (this.boss.active && this.boss.damage(this.boss.maxHp * constants.bossBombDamage)) this.defeatBoss();
+    if (this.boss.active) this.damageBoss(this.boss.maxHp * constants.bossBombDamage);
     this.cameras.main.flash(250, 203, 75, 22);
     this.effects.shake(constants.bombShakeMs, constants.bombShakeIntensity);
     playSound(this, 'big-explosion');
+  }
+
+  // returns true when the boss is beaten. Nothing else drops power-ups during a boss wave, so each
+  // phase the boss enters drops one
+  private damageBoss(amount?: number): boolean {
+    const phase = this.boss.phaseIndex;
+    if (this.boss.damage(amount)) {
+      this.defeatBoss();
+      return true;
+    }
+    if (this.boss.phaseIndex > phase) this.powerUps.drop(this.boss.x, this.boss.y);
+    return false;
   }
 
   private defeatBoss(): void {
@@ -271,7 +283,8 @@ export default class GameScene extends Phaser.Scene {
     this.effects.shake(constants.bombShakeMs, constants.bombShakeIntensity);
     playSound(this, 'big-explosion');
     playMusic(this, 'main', true);
-    this.powerUps.drop(x, y);
+    // always a shield: a bomb would go off on an empty screen, and a spread would run out during the break
+    this.powerUps.drop(x, y, 'shield');
     this.scoreSystem.addPoints(this.boss.points);
   }
 

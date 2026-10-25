@@ -47,8 +47,8 @@ export class PowerUpSystem {
     this.powerUps.add(new PowerUp(this.scene, x, y, type));
   }
 
-  public drop(x: number, y: number): void {
-    this.powerUps.add(new PowerUp(this.scene, x, y, this.pickType()));
+  public drop(x: number, y: number, type = this.pickType()): void {
+    this.powerUps.add(new PowerUp(this.scene, x, y, type));
   }
 
   public isSpreadActive(): boolean {
