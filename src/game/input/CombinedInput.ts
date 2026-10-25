@@ -20,12 +20,9 @@ export class CombinedInput implements InputController {
     return this.inputs.some((i) => i.dragging);
   }
 
-  get dragX(): number {
-    return this.inputs.reduce((sum, i) => sum + i.dragX, 0);
-  }
-
-  set dragX(value: number) {
-    this.inputs.forEach((i) => (i.dragX = value));
+  // the first input with a finger down steers
+  get targetX(): number {
+    return this.inputs.find((i) => i.dragging)?.targetX ?? 0;
   }
 
   get fire(): boolean {

@@ -127,10 +127,12 @@ export const constants = {
   // how fast they dodge laterally (pixels/sec)
   evasionSpeed: 200,
   bottomMargin: 200,
-  // ship travel per pixel of finger travel (both in playfield px)
-  touchDragSensitivity: 1,
-  // top speed of the ship gliding after the finger (pixels/sec), so fast flicks don't teleport it
+  // touch: the ship chases the finger's x. Top speed (pixels/sec), so a tap across the screen
+  // doesn't teleport it; how fast it eases in once close (per second: ~95% of the gap in 1/6 s);
+  // and the gap (px) at which it settles under the finger
   touchFollowMaxSpeed: 1500,
+  touchFollowRate: 18,
+  touchFollowSnap: 0.5,
   // power-ups: dropped by destroyed enemies. Kills per wave roughly triple as difficulty climbs, so
   // the chance falls with it (interpolated by difficulty), keeping drops near 3 per wave
   powerUpDropChance: [0.15, 0.07] as [number, number],

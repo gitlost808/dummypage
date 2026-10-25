@@ -2,22 +2,19 @@ import Phaser from 'phaser';
 import { InputController } from './InputController';
 import { constants } from '../constants';
 
-// a finger anywhere on the screen fires, and dragging it moves the ship by the same distance
-// (relative, so the finger never has to cover the ship). A mouse works the same way: hold the
-// button to fire and drag to move
+// a finger anywhere on the screen fires, and the ship chases its x (only sideways, so a finger
+// below the ship never covers it). A mouse works the same way: hold the button to fire and steer
 export class TouchInput implements InputController {
-  // touch steers by dragging only
+  // touch steers by the finger only
   public readonly left = false;
   public readonly right = false;
   public dragging = false;
-  public dragX = 0;
+  public targetX = 0;
   public fire = false;
   public firePressed = false;
 
   // every finger that is down; the newest one steers
   private pointers: Phaser.Input.Pointer[] = [];
-  // playfield x of the steering finger when its travel was last counted
-  private lastX = 0;
   private scene: Phaser.Scene;
   private hints: Phaser.GameObjects.Text[];
   private hintShown = true;
@@ -26,13 +23,14 @@ export class TouchInput implements InputController {
     this.scene = scene;
 
     const { width, height } = constants;
-    const press = scene.sys.game.device.input.touch ? 'Touch' : 'Click';
+    const touch = scene.sys.game.device.input.touch;
+    const press = touch ? 'Touch' : 'Click';
     this.hints = [
-      scene.add.text(width / 2, height - 90, `${press} and drag to move`, {
+      scene.add.text(width / 2, height - 90, `${press} and hold to steer`, {
         fontSize: '16px',
         color: '#ffffff',
       }).setOrigin(0.5).setDepth(6).setAlpha(0.9),
-      scene.add.text(width / 2, height - 60, 'Your ship fires while you hold', {
+      scene.add.text(width / 2, height - 60, `Your ship follows your ${touch ? 'finger' : 'cursor'} and fires`, {
         fontSize: '14px',
         color: '#cccccc',
       }).setOrigin(0.5).setDepth(6).setAlpha(0.85),
@@ -58,10 +56,7 @@ export class TouchInput implements InputController {
   }
 
   private onMove(p: Phaser.Input.Pointer) {
-    if (p !== this.steering) return;
-    const x = this.toPlayfieldX(p);
-    this.dragX += (x - this.lastX) * constants.touchDragSensitivity;
-    this.lastX = x;
+    if (p === this.steering) this.steerWith(p);
   }
 
   private onUp(p: Phaser.Input.Pointer) {
@@ -85,9 +80,8 @@ export class TouchInput implements InputController {
     return this.pointers[this.pointers.length - 1];
   }
 
-  // count travel from where this finger is now, so switching fingers doesn't jump the ship
   private steerWith(p: Phaser.Input.Pointer): void {
-    this.lastX = this.toPlayfieldX(p);
+    this.targetX = this.toPlayfieldX(p);
   }
 
   // pointer positions are in screen pixels; the ship moves in the scaled playfield
