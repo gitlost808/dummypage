@@ -17,7 +17,7 @@ import { GameOverOverlay } from './ui/GameOverOverlay';
 import { MuteButton } from './ui/MuteButton';
 import { WaveBanner } from './ui/WaveBanner';
 import { BossHealthBar } from './ui/BossHealthBar';
-import { playSound, randomDetune } from './utils/audio';
+import { playSound, randomDetune, startMusic, stopMusic } from './utils/audio';
 
 export default class GameScene extends Phaser.Scene {
   private inputType!: CombinedInput;
@@ -49,6 +49,7 @@ export default class GameScene extends Phaser.Scene {
     this.nextFireAt = 0;
     // gameOver() pauses the clock, and the Clock plugin survives the restart
     this.time.paused = false;
+    startMusic(this);
 
     // the playfield has a fixed size; the camera scales it to fit the window (see fitCamera)
     this.playfieldBorder = this.add.graphics();
@@ -288,6 +289,7 @@ export default class GameScene extends Phaser.Scene {
     this.effects.shake(constants.deathShakeMs, constants.deathShakeIntensity);
     playSound(this, 'big-explosion');
     playSound(this, 'game-over');
+    stopMusic(this);
 
     this.gameOverOverlay = new GameOverOverlay(
       this,

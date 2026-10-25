@@ -226,6 +226,9 @@ export const constants = {
   soundMinIntervalMs: 40,
   // random pitch variation for frequent sounds (cents)
   soundDetuneCents: 80,
+  // background music sits under the sound effects, and fades out on game over
+  musicVolume: 0.5,
+  musicFadeOutMs: 800,
   muteButtonMargin: 10,
   // ship FX (WebGL only): a soft neon glow in the ship's color, plus motion blur on the player
   shipGlowStrength: 3,
