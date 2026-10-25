@@ -2,6 +2,14 @@ import Phaser from 'phaser';
 import { constants } from '../constants';
 import { nebulaPixels } from './noise';
 
+// the boss hull's underside from left to right, and the cannons hanging below it, in texture pixels;
+// the boss blocks the laser there (see Boss.undersideAt)
+export const bossUnderside: [number, number][] = [[1, 26], [32, 40], [46, 71], [66, 71], [80, 40], [111, 26]];
+export const bossCannons = [
+  { left: 18, right: 24, bottom: 48 },
+  { left: 88, right: 94, bottom: 48 },
+];
+
 export function generateAllTextures(scene: Phaser.Scene): void {
   const gfx = scene.add.graphics();
 
@@ -56,6 +64,13 @@ export function generateAllTextures(scene: Phaser.Scene): void {
   gfx.generateTexture('powerup-spread', 24, 24);
   gfx.clear();
 
+  // power-up: laser, a ship firing one beam
+  drawPowerUpRing(gfx, constants.laserColor);
+  gfx.fillRect(11, 4, 2, 10);
+  gfx.fillTriangle(7, 19, 12, 13, 17, 19);
+  gfx.generateTexture('powerup-laser', 24, 24);
+  gfx.clear();
+
   // power-up: bomb
   drawPowerUpRing(gfx, constants.bombColor);
   gfx.fillCircle(12, 13, 5);
@@ -82,6 +97,7 @@ export function generateAllTextures(scene: Phaser.Scene): void {
   starGfx.destroy();
 
   generateNebulaTexture(scene);
+  generateLaserTexture(scene);
 
   // explosion particle (white so it can be tinted)
   const particleGfx = scene.add.graphics();
@@ -126,21 +142,13 @@ export function generateAllTextures(scene: Phaser.Scene): void {
 
   // boss: a broad hull with swept wings, two cannons and a glowing core
   enemyGfx.fillStyle(constants.bossColor);
+  // the top edge, then back along the underside
+  const bossOutline = [[10, 1], [102, 1], ...[...bossUnderside].reverse()];
   enemyGfx.fillPoints(
-    [
-      new Phaser.Math.Vector2(10, 1),
-      new Phaser.Math.Vector2(102, 1),
-      new Phaser.Math.Vector2(111, 26),
-      new Phaser.Math.Vector2(80, 40),
-      new Phaser.Math.Vector2(66, 71),
-      new Phaser.Math.Vector2(46, 71),
-      new Phaser.Math.Vector2(32, 40),
-      new Phaser.Math.Vector2(1, 26),
-    ],
+    bossOutline.map(([x, y]) => new Phaser.Math.Vector2(x, y)),
     true
   );
-  enemyGfx.fillRect(18, 26, 6, 22);
-  enemyGfx.fillRect(88, 26, 6, 22);
+  for (const { left, right, bottom } of bossCannons) enemyGfx.fillRect(left, 26, right - left, bottom - 26);
   enemyGfx.fillStyle(0x000000, 0.35);
   enemyGfx.fillRect(14, 8, 84, 4);
   enemyGfx.fillRect(30, 18, 52, 4);
@@ -174,6 +182,31 @@ function generateNebulaTexture(scene: Phaser.Scene): void {
   const context = texture.getContext();
   const image = context.createImageData(size, size);
   image.data.set(pixels);
+  context.putImageData(image, 0, 0);
+  texture.refresh();
+}
+
+// a slice across the laser beam, stretched to its length: a white-hot core fading out into a soft glow
+function generateLaserTexture(scene: Phaser.Scene): void {
+  const width = 32;
+  const height = 4;
+  const texture = scene.textures.createCanvas('laser-beam', width, height);
+  if (!texture) return;
+
+  const glow = Phaser.Display.Color.IntegerToColor(constants.laserColor);
+  const core = Phaser.Display.Color.IntegerToColor(constants.laserCoreColor);
+  const context = texture.getContext();
+  const image = context.createImageData(width, height);
+  for (let x = 0; x < width; x++) {
+    // 0 at the centre, 1 at the edges, where the glow has faded out
+    const d = Math.abs(x + 0.5 - width / 2) / (width / 2);
+    const coreAmount = Math.exp(-((d / 0.15) ** 2));
+    const glowAmount = Math.exp(-((d / 0.45) ** 2));
+    const mix = (from: number, to: number) => Math.round(from + (to - from) * coreAmount);
+    const pixel = [mix(glow.red, core.red), mix(glow.green, core.green), mix(glow.blue, core.blue)];
+    const alpha = Math.round(255 * Math.max(coreAmount, glowAmount * 0.7));
+    for (let y = 0; y < height; y++) image.data.set([...pixel, alpha], (y * width + x) * 4);
+  }
   context.putImageData(image, 0, 0);
   texture.refresh();
 }

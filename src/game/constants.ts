@@ -135,9 +135,11 @@ export const constants = {
   // the chance falls with it (interpolated by difficulty), keeping drops near 3 per wave
   powerUpDropChance: [0.15, 0.07] as [number, number],
   powerUpSpeed: 120,
-  powerUpWeights: { shield: 0.45, spread: 0.4, bomb: 0.15 },
+  // spread and laser share the weapon upgrades' slice
+  powerUpWeights: { shield: 0.45, spread: 0.3, laser: 0.1, bomb: 0.15 },
   shieldColor: 0x2aa198,
   spreadColor: 0x268bd2,
+  laserColor: 0x859900,
   bombColor: 0xcb4b16,
   // shields stack up to this many layers, drawn as glowing ellipses around the ship
   shieldMaxLayers: 3,
@@ -166,6 +168,23 @@ export const constants = {
   spreadDurationMs: 8000,
   // horizontal speed of the outer spread projectiles (pixels/sec)
   spreadVelocityX: 150,
+  // laser: replaces the gun (spread included) with a beam to the top of the screen while fire is held.
+  // It kills any enemy it touches and passes through; the boss blocks it and takes laserBossDamage
+  // every laserBossTickMs (the gun deals 1 per fireCooldownMs, so this is ~1.8x)
+  laserDurationMs: 6000,
+  laserBossDamage: 1,
+  laserBossTickMs: 100,
+  // a tap keeps the beam on this long, and it lingers this long after fire is released (in ms)
+  laserLingerMs: 150,
+  // the beam's width (px), flickering by this fraction; its white-hot core, and the bright pulses
+  // running up it (count on screen at once, speed in px/sec)
+  laserWidth: 22,
+  // the column that hits things: the bright middle of the beam, not its faint glow (px)
+  laserHitWidth: 14,
+  laserFlicker: 0.15,
+  laserCoreColor: 0xeaffa0,
+  laserPulses: 4,
+  laserPulseSpeed: 1400,
   // explosions: particle bursts on kills and shield hits
   explosionParticles: 14,
   explosionSmallParticles: 6,

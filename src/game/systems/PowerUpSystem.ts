@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { constants } from '../constants';
-import { PowerUp, PowerUpType, powerUpKinds } from '../entities/PowerUp';
+import { PowerUp, PowerUpType, TimedPowerUp, powerUpKinds } from '../entities/PowerUp';
 import { PlayerShip } from '../entities/PlayerShip';
 import { playSound } from '../utils/audio';
 import { scale } from './EnemySpawner';
@@ -11,11 +11,12 @@ export class PowerUpSystem {
   private scene: Phaser.Scene;
   private player: PlayerShip;
   private powerUps: Phaser.Physics.Arcade.Group;
-  private statusText: Phaser.GameObjects.Text;
+  // a countdown line under the score for each timed power-up that's running
+  private statusTexts: Record<TimedPowerUp, Phaser.GameObjects.Text>;
   private onBomb: () => void;
   private getDifficulty: () => number;
 
-  private spreadEndsAt = 0;
+  private endsAt: Record<TimedPowerUp, number> = { spread: 0, laser: 0 };
 
   constructor(scene: Phaser.Scene, player: PlayerShip, getDifficulty: () => number, onBomb: () => void) {
     this.scene = scene;
@@ -25,10 +26,9 @@ export class PowerUpSystem {
 
     this.powerUps = scene.physics.add.group({ runChildUpdate: true });
 
-    this.statusText = scene.add.text(10, 70, '', {
-      fontSize: '20px',
-      color: toHex(constants.spreadColor),
-    });
+    const statusText = (type: TimedPowerUp) =>
+      scene.add.text(10, 0, '', { fontSize: '20px', color: toHex(powerUpKinds[type].color) });
+    this.statusTexts = { spread: statusText('spread'), laser: statusText('laser') };
 
     scene.physics.add.overlap(player, this.powerUps, (_player, powerUp) =>
       this.collect(powerUp as PowerUp)
@@ -38,7 +38,7 @@ export class PowerUpSystem {
   public maybeDrop(x: number, y: number): void {
     if (Math.random() >= scale(constants.powerUpDropChance, this.getDifficulty())) return;
     const type = this.pickType();
-    // shields thin out as they stack, so spare layers stay rare; spread and bomb odds don't change
+    // shields thin out as they stack, so spare layers stay rare; the other odds don't change
     const skipChance = this.player.shieldLayers * constants.shieldDropFalloffPerLayer;
     if (type === 'shield' && Math.random() < skipChance) return;
     this.powerUps.add(new PowerUp(this.scene, x, y, type));
@@ -48,15 +48,19 @@ export class PowerUpSystem {
     this.powerUps.add(new PowerUp(this.scene, x, y, type));
   }
 
-  public isSpreadActive(): boolean {
-    return this.scene.time.now < this.spreadEndsAt;
+  public isActive(type: TimedPowerUp): boolean {
+    return this.scene.time.now < this.endsAt[type];
   }
 
   update(): void {
-    const remaining = this.spreadEndsAt - this.scene.time.now;
-    this.statusText.setText(
-      remaining > 0 ? `Spread: ${Math.ceil(remaining / 1000)}s` : ''
-    );
+    // running countdowns stack downwards, with no gap for the ones that aren't
+    let y = 70;
+    for (const [type, text] of Object.entries(this.statusTexts) as [TimedPowerUp, Phaser.GameObjects.Text][]) {
+      const remaining = this.endsAt[type] - this.scene.time.now;
+      text.setText(remaining > 0 ? `${powerUpKinds[type].name}: ${Math.ceil(remaining / 1000)}s` : '');
+      text.setY(y);
+      if (remaining > 0) y += text.height;
+    }
   }
 
   private collect(powerUp: PowerUp): void {
@@ -73,7 +77,10 @@ export class PowerUpSystem {
           : `${label} MAX`;
         break;
       case 'spread':
-        this.spreadEndsAt = this.scene.time.now + constants.spreadDurationMs;
+        this.endsAt.spread = this.scene.time.now + constants.spreadDurationMs;
+        break;
+      case 'laser':
+        this.endsAt.laser = this.scene.time.now + constants.laserDurationMs;
         break;
       case 'bomb':
         this.onBomb();
@@ -97,12 +104,13 @@ export class PowerUpSystem {
   }
 
   private pickType(): PowerUpType {
-    const weights = constants.powerUpWeights;
-    const total = weights.shield + weights.spread + weights.bomb;
-    const roll = Math.random() * total;
-
-    if (roll < weights.shield) return 'shield';
-    if (roll < weights.shield + weights.spread) return 'spread';
-    return 'bomb';
+    const weights = Object.entries(constants.powerUpWeights) as [PowerUpType, number][];
+    let roll = Math.random() * weights.reduce((total, [, weight]) => total + weight, 0);
+    for (const [type, weight] of weights) {
+      roll -= weight;
+      if (roll < 0) return type;
+    }
+    // only reached through rounding
+    return weights[weights.length - 1][0];
   }
 }

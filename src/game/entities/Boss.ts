@@ -5,6 +5,7 @@ import { EnemyProjectile } from './EnemyProjectile';
 import { LegendEntry } from './LegendEntry';
 import { constants } from '../constants';
 import { playSound, randomDetune } from '../utils/audio';
+import { bossCannons, bossUnderside } from '../utils/texture-generator';
 
 type BossAttack = (typeof constants.bossPhases)[number]['attacks'][number];
 
@@ -74,6 +75,20 @@ export class Boss extends Ship {
     this.hp = Math.max(0, this.hp - amount);
     this.flashUntil = this.scene.time.now + constants.enemyHitFlashMs;
     return this.hp <= 0;
+  }
+
+  // the world y of the hull's underside (or a cannon's muzzle) at world x, undefined where x misses the hull
+  public undersideAt(x: number): number | undefined {
+    const tx = x - this.x + this.width * this.originX;
+    const top = this.y - this.height * this.originY;
+    const cannon = bossCannons.find(({ left, right }) => tx >= left && tx <= right);
+    if (cannon) return top + cannon.bottom;
+    for (let i = 1; i < bossUnderside.length; i++) {
+      const [x0, y0] = bossUnderside[i - 1];
+      const [x1, y1] = bossUnderside[i];
+      if (tx >= x0 && tx <= x1) return top + Phaser.Math.Linear(y0, y1, (tx - x0) / (x1 - x0));
+    }
+    return undefined;
   }
 
   public despawn(): void {

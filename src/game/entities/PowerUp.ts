@@ -2,7 +2,9 @@ import Phaser from 'phaser';
 import { constants } from '../constants';
 import { LegendEntry } from './LegendEntry';
 
-export type PowerUpType = 'shield' | 'spread' | 'bomb';
+export type PowerUpType = 'shield' | 'spread' | 'laser' | 'bomb';
+// the ones that last a while, counting down under the score
+export type TimedPowerUp = 'spread' | 'laser';
 
 // every power-up; the title screen legend lists them all. What each one does is in PowerUpSystem.collect
 export const powerUpKinds: Record<PowerUpType, LegendEntry> = {
@@ -17,6 +19,12 @@ export const powerUpKinds: Record<PowerUpType, LegendEntry> = {
     description: `Fires three shots at once for ${constants.spreadDurationMs / 1000}s`,
     texture: 'powerup-spread',
     color: constants.spreadColor,
+  },
+  laser: {
+    name: 'Laser',
+    description: `A piercing beam replaces your gun for ${constants.laserDurationMs / 1000}s`,
+    texture: 'powerup-laser',
+    color: constants.laserColor,
   },
   bomb: {
     name: 'Bomb',

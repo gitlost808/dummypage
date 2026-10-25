@@ -9,6 +9,8 @@ export type SoundKey =
   | 'big-explosion'
   | 'shield-hit'
   | 'powerup'
+  | 'laser'
+  | 'laser-hum'
   | 'boss-warn'
   | 'game-over';
 
@@ -37,6 +39,17 @@ export const sounds: Record<SoundKey, SoundLayer[]> = {
   // rising major arpeggio
   powerup: [
     { wave: 'square', duration: 0.32, from: 523, to: 523, volume: 0.1, decay: 0.5, steps: [1, 1.26, 1.5, 2] },
+  ],
+  // the laser beam igniting: a rising zap with a crackle on top
+  laser: [
+    { wave: 'saw', duration: 0.22, from: 180, to: 1400, volume: 0.14, decay: 1.5 },
+    { wave: 'noise', duration: 0.12, from: 9000, to: 2500, volume: 0.1 },
+  ],
+  // looped while the beam is on: a warbling buzz with no fade, so it repeats seamlessly. Each layer's
+  // pitch steps average 1, so the loop holds a whole number of cycles (120 Hz * 0.25 s = 30) and has no click
+  'laser-hum': [
+    { wave: 'saw', duration: 0.25, from: 120, to: 120, volume: 0.07, attack: 1e-6, decay: 0, steps: [1, 1.03, 1, 0.97] },
+    { wave: 'square', duration: 0.25, from: 360, to: 360, volume: 0.025, attack: 1e-6, decay: 0, steps: [1, 0.98, 1, 1.02] },
   ],
   // a two-tone siren as the boss wave starts
   'boss-warn': [
