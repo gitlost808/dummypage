@@ -39,7 +39,12 @@ export class PowerUpSystem {
   }
 
   public maybeDrop(x: number, y: number): void {
-    if (Math.random() < constants.powerUpDropChance) this.drop(x, y);
+    if (Math.random() >= constants.powerUpDropChance) return;
+    const type = this.pickType();
+    // shields thin out as they stack, so spare layers stay rare; spread and bomb odds don't change
+    const skipChance = this.player.shieldLayers * constants.shieldDropFalloffPerLayer;
+    if (type === 'shield' && Math.random() < skipChance) return;
+    this.powerUps.add(new PowerUp(this.scene, x, y, type));
   }
 
   public drop(x: number, y: number): void {
@@ -63,9 +68,12 @@ export class PowerUpSystem {
     powerUp.destroy();
     playSound(this.scene, 'powerup');
 
+    let label = type.toUpperCase();
     switch (type) {
       case 'shield':
-        this.player.activateShield();
+        label = this.player.addShieldLayer()
+          ? `${label} ${this.player.shieldLayers}/${constants.shieldMaxLayers}`
+          : `${label} MAX`;
         break;
       case 'spread':
         this.spreadEndsAt = this.scene.time.now + constants.spreadDurationMs;
@@ -75,7 +83,7 @@ export class PowerUpSystem {
         break;
     }
 
-    this.showLabel(x, y, type.toUpperCase(), powerUpColors[type]);
+    this.showLabel(x, y, label, powerUpColors[type]);
   }
 
   private showLabel(x: number, y: number, text: string, color: number): void {

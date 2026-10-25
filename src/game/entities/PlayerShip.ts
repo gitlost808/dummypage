@@ -76,18 +76,23 @@ export class PlayerShip extends Ship {
     this.motionBlur.x = Math.min(speed / this.speed, 1) * constants.playerMotionBlur;
   }
 
-  activateShield(): void {
-    this.shield.activate(this.x, this.y);
+  get shieldLayers(): number {
+    return this.shield.count;
   }
 
-  // after the shield breaks, hits pass straight through rather than registering as a second shield hit
+  // returns false if the shield is already at full strength
+  addShieldLayer(): boolean {
+    return this.shield.add(this.x, this.y);
+  }
+
+  // after a shield layer breaks, hits pass straight through rather than registering as a second shield hit
   get isInvulnerable(): boolean {
     return this.scene.time.now < this.invulnerableUntil;
   }
 
-  // returns true if the hit was absorbed by the shield
+  // returns true if the hit was absorbed by a shield layer
   absorbHit(): boolean {
-    if (!this.shield.shatter()) return false;
+    if (!this.shield.pop()) return false;
 
     this.invulnerableUntil = this.scene.time.now + constants.shieldInvulnerabilityMs;
     this.scene.tweens.add({

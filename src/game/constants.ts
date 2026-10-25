@@ -119,22 +119,29 @@ export const constants = {
   shieldColor: 0x2aa198,
   spreadColor: 0x268bd2,
   bombColor: 0xcb4b16,
-  // the shield: a glowing ellipse around the ship; half-width (px), and height as a fraction of width
+  // shields stack up to this many layers, drawn as glowing ellipses around the ship
+  shieldMaxLayers: 3,
+  // half-width of the innermost ellipse and the step out to each next one (px); height is width * aspect
   shieldRadiusX: 26,
+  shieldLayerGap: 6,
   shieldAspect: 0.8,
+  // each layer held makes a shield drop this much likelier to be skipped (1/3: 1 in 3 at one layer, none at three)
+  shieldDropFalloffPerLayer: 1 / 3,
   // bright line along the middle of the rim, and the reach of the rim's glow (px)
   shieldCoreColor: 0xb8f0e8,
   shieldGlowBlur: 8,
-  // streaks of light orbiting the rim (radians/sec)
+  // streaks of light orbiting each rim (radians/sec); neighbouring layers spin opposite ways
   shieldGlints: 2,
   shieldGlintSpeed: 2.4,
   shieldGlintSize: { width: 14, height: 5 },
-  // the shield snaps in from this scale, then breathes between full and this alpha (durations in ms)
+  // a new layer snaps in from this scale; layers breathe between full and this alpha;
+  // the layers left flinch to this scale when the outermost one pops (durations in ms)
   shieldSpawnScale: 1.3,
   shieldSpawnMs: 200,
   shieldPulseAlpha: 0.6,
   shieldPulseMs: 600,
-  // brief invulnerability after the shield absorbs a hit (in ms)
+  shieldFlinchScale: 1.12,
+  // brief invulnerability after a shield layer absorbs a hit (in ms)
   shieldInvulnerabilityMs: 1000,
   spreadDurationMs: 8000,
   // horizontal speed of the outer spread projectiles (pixels/sec)
