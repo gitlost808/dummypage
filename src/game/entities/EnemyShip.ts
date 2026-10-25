@@ -9,6 +9,8 @@ import { glowTextureKey } from "../utils/glow";
 export type EnemyBehavior = "basic" | "strafer" | "diver" | "hover";
 // what the enemy is (movement comes from its behavior)
 export type EnemyKind = "normal" | "tank" | "gunner";
+// straight down, one shot aimed at the player, or an aimed fan
+export type EnemyShot = "straight" | "aimed" | "fan";
 
 export const enemyKinds: Record<EnemyKind, { texture: string; color: number; hp: number; points: number }> = {
   normal: { texture: "enemy", color: constants.enemyColor, hp: 1, points: constants.pointsPerHit },
@@ -26,6 +28,9 @@ type EnemyProfile = {
   evasionScale: number;
   diveChancePerSecond: number;
   fireIntervalMs: number;
+  shot: EnemyShot;
+  // part of a row falling in step: no drifting or dodging, so the row holds together
+  formation: boolean;
 };
 
 export class EnemyShip extends Ship {
@@ -48,6 +53,8 @@ export class EnemyShip extends Ship {
     evasionScale: 1,
     diveChancePerSecond: 0,
     fireIntervalMs: 0,
+    shot: "straight",
+    formation: false,
   };
 
   // new evasion state
@@ -106,8 +113,8 @@ export class EnemyShip extends Ship {
     this.diveState = "none";
     this.diveStateEndsAt = 0;
     this.swayPhase = Phaser.Math.FloatBetween(0, Math.PI * 2);
-    // tanks fall straight
-    this.driftVx = profile.kind === "tank"
+    // tanks and formations fall straight
+    this.driftVx = profile.kind === "tank" || profile.formation
       ? 0
       : Phaser.Math.FloatBetween(-constants.enemyDriftSpeed, constants.enemyDriftSpeed);
     this.hoverY = Phaser.Math.FloatBetween(constants.gunnerHoverYMin, constants.gunnerHoverYMax) * constants.height;
@@ -347,8 +354,8 @@ export class EnemyShip extends Ship {
   }
 
   private scheduleNextEvasion(): void {
-    // tanks don't dodge
-    if (!this.scene || this.profile.kind === "tank") {
+    // tanks and formations don't dodge
+    if (!this.scene || this.profile.kind === "tank" || this.profile.formation) {
       return;
     }
     const scale = this.profile.evasionScale || 1;
@@ -407,33 +414,42 @@ export class EnemyShip extends Ship {
     if (this.diveState === "diving") return;
 
     const y = this.y + this.hullHeight * 0.5;
-    const aimed = this.profile.kind === "gunner";
-    const bullet = this.projectilePool.get(this.x, y) as EnemyProjectile;
-    if (!bullet) return;
 
-    // pooled bullets keep their last texture, so always set it (and the body size)
-    bullet.setTexture(aimed ? "enemy-projectile-aimed" : "enemy-projectile");
-    (bullet.body as Phaser.Physics.Arcade.Body).setSize();
-    playSound(this.scene, "enemy-shoot", randomDetune());
-
-    if (!aimed) {
+    if (this.profile.shot === "straight") {
       // fire straight down (mirrors player straight up), always pulling ahead of the ship
       const fallSpeed = (this.body as Phaser.Physics.Arcade.Body).velocity.y;
       const speed = Math.max(constants.enemyProjectileSpeed, fallSpeed + constants.enemyProjectileMinLead);
-      bullet.reset(this.x, y, 0, speed);
+      if (this.fireBullet("enemy-projectile", y, Math.PI / 2, speed)) playSound(this.scene, "enemy-shoot", randomDetune());
       return;
     }
 
-    // aim at the player with some jitter; always keep a downward component
-    // so the bullet leaves through the bottom of the screen
+    // aim at the player with some jitter; always keep a downward component so the bullets leave
+    // through the bottom of the screen. A fan is clamped as a whole, so its outer shots stay inside too
+    const shots = this.profile.shot === "fan" ? constants.gunnerFanShots : 1;
+    const halfArc = ((shots - 1) / 2) * constants.gunnerFanSpread;
     const jitter = Phaser.Math.FloatBetween(-constants.gunnerAimJitter, constants.gunnerAimJitter);
-    const angle = Phaser.Math.Clamp(
+    const center = Phaser.Math.Clamp(
       Math.atan2(this.target.y - y, this.target.x - this.x) + jitter,
-      constants.gunnerMinAimAngle,
-      Math.PI - constants.gunnerMinAimAngle
+      constants.gunnerMinAimAngle + halfArc,
+      Math.PI - constants.gunnerMinAimAngle - halfArc
     );
-    const speed = constants.gunnerProjectileSpeed;
+    let fired = false;
+    for (let i = 0; i < shots; i++) {
+      const angle = center - halfArc + i * constants.gunnerFanSpread;
+      fired = this.fireBullet("enemy-projectile-aimed", y, angle, constants.gunnerProjectileSpeed) || fired;
+    }
+    if (fired) playSound(this.scene, "enemy-shoot", randomDetune());
+  }
+
+  // returns false when the pool is exhausted
+  private fireBullet(texture: string, y: number, angle: number, speed: number): boolean {
+    const bullet = this.projectilePool?.get(this.x, y) as EnemyProjectile | null;
+    if (!bullet) return false;
+    // pooled bullets keep their last texture, so always set it (and the body size)
+    bullet.setTexture(texture);
+    (bullet.body as Phaser.Physics.Arcade.Body).setSize();
     bullet.reset(this.x, y, Math.cos(angle) * speed, Math.sin(angle) * speed);
+    return true;
   }
 
   preDestroy(): void {

@@ -1,15 +1,30 @@
 import Phaser from 'phaser';
-import { EnemyShip, EnemyKind, EnemyBehavior } from '../entities/EnemyShip';
+import { EnemyShip, EnemyKind, EnemyBehavior, EnemyShot, enemyKinds } from '../entities/EnemyShip';
 import { PlayerShip } from '../entities/PlayerShip';
 import { Boss } from '../entities/Boss';
 import { constants } from '../constants';
 
 type Range = [number, number];
 type Unlockable = { unlockAt: number; weight: Range };
+type Escalation = keyof typeof constants.escalations;
+// the next spawn: one enemy, or a formation of normal ones
+type SpawnPick = EnemyKind | 'formation';
+// escalation is the banner line for a threat the last boss unlocked
+export type WaveStartListener = (wave: number, isBoss: boolean, escalation?: string) => void;
 
 // interpolate an [easy, hard] range by difficulty
-function scale([easy, hard]: Range, difficulty: number): number {
+export function scale([easy, hard]: Range, difficulty: number): number {
   return easy + (hard - easy) * difficulty;
+}
+
+function threatCost(pick: SpawnPick): number {
+  return pick === 'formation'
+    ? constants.formationSize * constants.enemyThreatCost.normal
+    : constants.enemyThreatCost[pick];
+}
+
+function spawnMargin(): number {
+  return Math.min(constants.enemySpawnMargin, constants.width / 2);
 }
 
 // weighted random pick among the entries unlocked at this difficulty; each weight
@@ -40,12 +55,12 @@ export class EnemySpawner {
   // threat saved up towards the next spawn
   private threatBank = 0;
   // picked in advance, so pricier enemies aren't crowded out by cheap ones
-  private nextKind: EnemyKind = 'normal';
+  private next: SpawnPick = 'normal';
   private nextSpawnAt = 0;
 
   private wave = 0;
   private waveEndsAt = 0;
-  private onWaveStart: (wave: number, isBoss: boolean) => void;
+  private onWaveStart: WaveStartListener;
 
   // boss waves last until the boss is beaten, and the difficulty clock stands still meanwhile
   private boss: Boss;
@@ -53,12 +68,16 @@ export class EnemySpawner {
   private bossWaveStartedAt = 0;
   private pausedMs = 0;
 
+  // each boss beaten unlocks the next escalation; its banner line waits for the next wave
+  private bossesBeaten = 0;
+  private escalationNews?: string;
+
   constructor(
     scene: Phaser.Scene,
     player: PlayerShip,
     enemyProjectiles: Phaser.Physics.Arcade.Group,
     boss: Boss,
-    onWaveStart: (wave: number, isBoss: boolean) => void
+    onWaveStart: WaveStartListener
   ) {
     this.scene = scene;
     this.player = player;
@@ -103,19 +122,29 @@ export class EnemySpawner {
     this.waveEndsAt = this.scene.time.now + constants.waveDurationMs;
     // every wave builds up from nothing
     this.threatBank = 0;
-    this.onWaveStart(this.wave, this.isBossWave);
+    this.onWaveStart(this.wave, this.isBossWave, this.escalationNews);
+    this.escalationNews = undefined;
     if (this.isBossWave) {
       this.bossWaveStartedAt = this.scene.time.now;
       this.boss.spawn(this.wave / constants.bossEveryWaves);
     }
   }
 
-  // the boss is beaten: restart the difficulty clock and go to the break before the next wave
+  // the boss is beaten: restart the difficulty clock, unlock the next escalation and go to the break
+  // before the next wave
   private endBossWave(): void {
     const now = this.scene.time.now;
     this.pausedMs += now - this.bossWaveStartedAt;
     this.isBossWave = false;
     this.waveEndsAt = now;
+    this.bossesBeaten++;
+    this.escalationNews = Object.values(constants.escalations).find(
+      ({ bosses }) => bosses === this.bossesBeaten
+    )?.banner;
+  }
+
+  private isUnlocked(escalation: Escalation): boolean {
+    return this.bossesBeaten >= constants.escalations[escalation].bosses;
   }
 
   private tick(): void {
@@ -137,14 +166,21 @@ export class EnemySpawner {
     const earned = scale(constants.threatPerSecond, difficulty) * overtime * (constants.spawnTickMs / 1000);
     this.threatBank = Math.min(this.threatBank + earned, constants.maxBankedThreat);
 
-    const cost = constants.enemyThreatCost[this.nextKind];
+    const cost = threatCost(this.next);
     if (this.threatBank < cost || this.scene.time.now < this.nextSpawnAt) return;
     if (this.threatOnScreen() + cost > scale(constants.maxThreatOnScreen, difficulty) * overtime) return;
-    if (!this.spawn(this.nextKind, difficulty)) return;
+    const spawned = this.next === 'formation' ? this.spawnFormation(difficulty) : this.spawn(this.next, difficulty);
+    if (!spawned) return;
 
     this.threatBank -= cost;
     this.nextSpawnAt = this.scene.time.now + constants.minSpawnGapMs;
-    this.nextKind = pickWeighted(constants.enemyKindWeights, difficulty);
+    this.next = this.pickNext(difficulty);
+  }
+
+  private pickNext(difficulty: number): SpawnPick {
+    const kind = pickWeighted(constants.enemyKindWeights, difficulty);
+    const formation = kind === 'normal' && this.isUnlocked('formations') && Math.random() < constants.formationChance;
+    return formation ? 'formation' : kind;
   }
 
   private threatOnScreen(): number {
@@ -153,19 +189,34 @@ export class EnemySpawner {
       .reduce((sum, enemy) => sum + constants.enemyThreatCost[(enemy as EnemyShip).kind], 0);
   }
 
+  // a row of normal enemies side by side, falling in step; returns false only if none could spawn
+  private spawnFormation(difficulty: number): boolean {
+    const step = this.scene.textures.getFrame(enemyKinds.normal.texture).width + constants.formationGap;
+    const rowWidth = step * (constants.formationSize - 1);
+    const left = Phaser.Math.Between(spawnMargin(), constants.width - spawnMargin() - rowWidth);
+    let spawned = false;
+    for (let i = 0; i < constants.formationSize; i++) {
+      spawned = this.spawn('normal', difficulty, left + i * step, true) || spawned;
+    }
+    return spawned;
+  }
+
   // returns false when the pool is exhausted
-  private spawn(kind: EnemyKind, difficulty: number): boolean {
-    const width = constants.width;
-    const margin = Math.min(constants.enemySpawnMargin, width / 2);
-    const x = Phaser.Math.Between(margin, width - margin);
-    const behavior = this.pickBehavior(kind, difficulty);
+  private spawn(
+    kind: EnemyKind,
+    difficulty: number,
+    x = Phaser.Math.Between(spawnMargin(), constants.width - spawnMargin()),
+    formation = false
+  ): boolean {
+    const behavior = formation ? 'basic' : this.pickBehavior(kind, difficulty);
+    const shot = this.pickShot(kind);
 
     // tanks are slower in both directions
     const speedFactor = kind === 'tank' ? constants.tankSpeedMultiplier : 1;
     const fireIntervalMs = difficulty < constants.enemyFireStartDifficulty
       ? 0
       : scale(constants.enemyFireIntervalMs, difficulty) *
-        (kind === 'gunner' ? constants.gunnerFireIntervalMultiplier : 1);
+        (shot === 'straight' ? 1 : constants.gunnerFireIntervalMultiplier);
 
     // Obtain an enemy from the pool (or create if none free)
     const enemy = this.enemies.get(x, 0, 'enemy') as EnemyShip;
@@ -185,6 +236,8 @@ export class EnemySpawner {
       evasionScale: scale(constants.enemyEvasionScale, difficulty),
       diveChancePerSecond: scale(constants.enemyDiveChance, difficulty),
       fireIntervalMs,
+      shot,
+      formation,
     }, this.enemyProjectiles);
     // reactivate, resetting the body to just above the top edge so the enemy slides in
     enemy.enableBody(true, x, -enemy.hullHeight / 2, true, true);
@@ -196,6 +249,13 @@ export class EnemySpawner {
     if (kind === 'tank') return 'basic';
     if (kind === 'gunner') return 'hover';
     return pickWeighted(constants.enemyBehaviorWeights, difficulty);
+  }
+
+  // gunners aim and tanks fire straight down, until escalations sharpen both
+  private pickShot(kind: EnemyKind): EnemyShot {
+    if (kind === 'gunner') return this.isUnlocked('gunnerFans') ? 'fan' : 'aimed';
+    if (kind === 'tank' && this.isUnlocked('aimedTanks')) return 'aimed';
+    return 'straight';
   }
 
   public getGroup(): Phaser.Physics.Arcade.Group {
