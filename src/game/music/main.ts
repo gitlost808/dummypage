@@ -1,16 +1,7 @@
-import { SoundLayer } from './synth';
-import { Song } from './tracker';
+import { Song } from '../utils/tracker';
+import { kit } from './kit';
 
-// the background music: a 16-bar chiptune loop in A minor, rendered at boot (see tracker.ts)
-
-const kit: Record<string, SoundLayer[]> = {
-  k: [{ wave: 'sine', duration: 0.16, from: 160, to: 45, volume: 0.4, decay: 1.5 }],
-  s: [
-    { wave: 'noise', duration: 0.14, from: 6000, to: 2500, volume: 0.16, decay: 2 },
-    { wave: 'triangle', duration: 0.08, from: 220, to: 160, volume: 0.12 },
-  ],
-  h: [{ wave: 'noise', duration: 0.035, from: 10000, to: 8000, volume: 0.05, decay: 3 }],
-};
+// the main theme: a 16-bar chiptune loop in A minor
 
 // a bar of each chord: bass bouncing between root and octave, and an arpeggio below the lead
 const chords: Record<string, { bass: [string, string]; arp: string[] }> = {
@@ -61,7 +52,7 @@ const lead = `
   E6 - - - - - - - - - - - . . . .       |
 `;
 
-export const music: Song = {
+export const main: Song = {
   bpm: 132,
   stepsPerBeat: 4,
   tracks: [

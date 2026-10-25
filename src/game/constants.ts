@@ -226,9 +226,11 @@ export const constants = {
   soundMinIntervalMs: 40,
   // random pitch variation for frequent sounds (cents)
   soundDetuneCents: 80,
-  // background music sits under the sound effects, and fades out on game over
+  // background music sits under the sound effects
   musicVolume: 0.5,
-  musicFadeOutMs: 800,
+  // switching tracks (boss wave, boss defeated) and game over: the old track slows to this rate as it fades
+  musicTransitionMs: 1200,
+  musicWindDownRate: 0.5,
   // the sound and music buttons in the top-right corner
   toggleButtonMargin: 10,
   toggleButtonGap: 12,

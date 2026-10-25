@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { constants } from '../constants';
 import { synthesize } from './synth';
 import { sounds, SoundKey } from './sounds';
+import { RenderedTrack, trackKeys, TrackKey } from '../music';
 
 const mutedKey = 'galactic-skirmish:muted';
 const musicOffKey = 'galactic-skirmish:music-off';
@@ -20,41 +21,50 @@ export function generateAllSounds(scene: Phaser.Scene): void {
   }
 }
 
-const musicKey = 'music';
-// whether a run is under way, so the music can start as soon as it's rendered
-let musicWanted = false;
+// the track that should be playing (none between runs), so it can start as soon as it's rendered
+let wantedTrack: TrackKey | null = null;
 // the music's own switch; it keeps playing muted, so switching it back on doesn't restart it
 let musicOff = loadFlag(musicOffKey);
 
-// render the background music in a worker and add it to the audio cache once it's ready
+const musicKey = (track: TrackKey) => `music:${track}`;
+
+// render the music tracks in a worker and add each to the audio cache once it's ready
 export function generateMusic(scene: Phaser.Scene): void {
   if (!(scene.sound instanceof Phaser.Sound.WebAudioSoundManager)) return;
   const context = scene.sound.context;
   const sound = scene.sound;
   const cache = scene.cache.audio;
+  let pending = trackKeys.length;
 
   // if the worker can't run, the game just plays without music
-  const worker = new Worker(new URL('./music-worker.ts', import.meta.url), { type: 'module' });
+  const worker = new Worker(new URL('../music/worker.ts', import.meta.url), { type: 'module' });
   worker.onerror = () => worker.terminate();
-  worker.onmessage = ({ data: samples }: MessageEvent<Float32Array<ArrayBuffer>>) => {
-    worker.terminate();
+  worker.onmessage = ({ data: { track, samples } }: MessageEvent<RenderedTrack>) => {
+    if (--pending === 0) worker.terminate();
     const buffer = context.createBuffer(1, samples.length, context.sampleRate);
     buffer.copyToChannel(samples, 0);
-    cache.add(musicKey, buffer);
-    if (musicWanted) playMusic(sound);
+    cache.add(musicKey(track), buffer);
+    if (track === wantedTrack) startTrack(sound, track, false);
   };
   worker.postMessage(context.sampleRate);
 }
 
-// (re)start the music from the top; before it has rendered, it starts once it has
-export function startMusic(scene: Phaser.Scene): void {
-  musicWanted = true;
-  if (scene.cache.audio.exists(musicKey)) playMusic(scene.sound);
+// switch to a track, from the top. Without a transition the others just stop (a new run); with one, the
+// playing track winds down like a tape stopping while the new one fades in. Tweens run even while the scene
+// clock is paused on game over. A track that hasn't rendered yet starts once it has
+export function playMusic(scene: Phaser.Scene, track: TrackKey, transition = false): void {
+  wantedTrack = track;
+  for (const other of trackKeys) if (other !== track) silence(scene, other, transition);
+  if (!scene.cache.audio.exists(musicKey(track))) return;
+
+  const music = startTrack(scene.sound, track, transition);
+  scene.tweens.killTweensOf(music);
+  if (transition) scene.tweens.add({ targets: music, volume: constants.musicVolume, duration: constants.musicTransitionMs });
 }
 
-function playMusic(sound: Phaser.Sound.BaseSoundManager): void {
-  const music = sound.get(musicKey) ?? sound.add(musicKey);
-  music.play({ loop: true, volume: constants.musicVolume, mute: musicOff });
+export function stopMusic(scene: Phaser.Scene): void {
+  wantedTrack = null;
+  for (const track of trackKeys) silence(scene, track, true);
 }
 
 export function isMusicOn(): boolean {
@@ -64,15 +74,31 @@ export function isMusicOn(): boolean {
 export function toggleMusic(scene: Phaser.Scene): void {
   musicOff = !musicOff;
   saveFlag(musicOffKey, musicOff);
-  scene.sound.get<Phaser.Sound.WebAudioSound>(musicKey)?.setMute(musicOff);
+  for (const track of trackKeys) scene.sound.get<Phaser.Sound.WebAudioSound>(musicKey(track))?.setMute(musicOff);
 }
 
-// fade out; tweens run even while the scene clock is paused on game over
-export function stopMusic(scene: Phaser.Scene): void {
-  musicWanted = false;
-  const music = scene.sound.get<Phaser.Sound.WebAudioSound>(musicKey);
+function startTrack(sound: Phaser.Sound.BaseSoundManager, track: TrackKey, silent: boolean): Phaser.Sound.BaseSound {
+  const music = sound.get(musicKey(track)) ?? sound.add(musicKey(track));
+  // a wound-down track was left slowed, so reset the rate too
+  music.play({ loop: true, volume: silent ? 0 : constants.musicVolume, rate: 1, mute: musicOff });
+  return music;
+}
+
+function silence(scene: Phaser.Scene, track: TrackKey, windDown: boolean): void {
+  const music = scene.sound.get<Phaser.Sound.WebAudioSound>(musicKey(track));
   if (!music?.isPlaying) return;
-  scene.tweens.add({ targets: music, volume: 0, duration: constants.musicFadeOutMs, onComplete: () => music.stop() });
+  scene.tweens.killTweensOf(music);
+  if (!windDown) {
+    music.stop();
+    return;
+  }
+  scene.tweens.add({
+    targets: music,
+    volume: 0,
+    rate: constants.musicWindDownRate,
+    duration: constants.musicTransitionMs,
+    onComplete: () => music.stop(),
+  });
 }
 
 const lastPlayedAt = new Map<SoundKey, number>();
