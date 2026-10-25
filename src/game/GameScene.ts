@@ -15,9 +15,10 @@ import { CombinedInput } from './input/CombinedInput';
 import { InputController } from './input/InputController';
 import { GameOverOverlay } from './ui/GameOverOverlay';
 import { MuteButton } from './ui/MuteButton';
+import { MusicButton } from './ui/MusicButton';
 import { WaveBanner } from './ui/WaveBanner';
 import { BossHealthBar } from './ui/BossHealthBar';
-import { playSound, randomDetune } from './utils/audio';
+import { playMusic, playSound, randomDetune, stopMusic } from './utils/audio';
 
 export default class GameScene extends Phaser.Scene {
   private inputType!: CombinedInput;
@@ -30,6 +31,7 @@ export default class GameScene extends Phaser.Scene {
   private effects!: EffectsSystem;
   private gameOverOverlay?: GameOverOverlay;
   private muteButton!: MuteButton;
+  private musicButton!: MusicButton;
   private waveBanner!: WaveBanner;
   private boss!: Boss;
   private bossHealthBar!: BossHealthBar;
@@ -49,6 +51,7 @@ export default class GameScene extends Phaser.Scene {
     this.nextFireAt = 0;
     // gameOver() pauses the clock, and the Clock plugin survives the restart
     this.time.paused = false;
+    playMusic(this, 'main');
 
     // the playfield has a fixed size; the camera scales it to fit the window (see fitCamera)
     this.playfieldBorder = this.add.graphics();
@@ -77,13 +80,16 @@ export default class GameScene extends Phaser.Scene {
     this.bossHealthBar = new BossHealthBar(this);
     this.enemySpawner = new EnemySpawner(this, this.player, this.enemyProjectiles, this.boss, (wave, isBoss) => {
       this.waveBanner.show(wave, isBoss);
-      if (isBoss) playSound(this, 'boss-warn');
+      if (!isBoss) return;
+      playSound(this, 'boss-warn');
+      playMusic(this, 'boss', true);
     });
     this.powerUps = new PowerUpSystem(this, this.player, () =>
       this.detonateBomb()
     );
     this.effects = new EffectsSystem(this);
     this.muteButton = new MuteButton(this);
+    this.musicButton = new MusicButton(this);
 
     // collisions; checked pair by pair, so a second hit in the frame the shield breaks is skipped too
     const canHitPlayer = () => !this.player.isInvulnerable;
@@ -264,6 +270,7 @@ export default class GameScene extends Phaser.Scene {
     this.effects.explode(x, y, constants.bossColor, constants.explosionDeathParticles);
     this.effects.shake(constants.bombShakeMs, constants.bombShakeIntensity);
     playSound(this, 'big-explosion');
+    playMusic(this, 'main', true);
     this.powerUps.drop(x, y);
     this.scoreSystem.addPoints(this.boss.points);
   }
@@ -288,6 +295,7 @@ export default class GameScene extends Phaser.Scene {
     this.effects.shake(constants.deathShakeMs, constants.deathShakeIntensity);
     playSound(this, 'big-explosion');
     playSound(this, 'game-over');
+    stopMusic(this);
 
     this.gameOverOverlay = new GameOverOverlay(
       this,

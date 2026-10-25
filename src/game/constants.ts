@@ -226,7 +226,14 @@ export const constants = {
   soundMinIntervalMs: 40,
   // random pitch variation for frequent sounds (cents)
   soundDetuneCents: 80,
-  muteButtonMargin: 10,
+  // background music sits under the sound effects
+  musicVolume: 0.5,
+  // switching tracks (boss wave, boss defeated) and game over: the old track slows to this rate as it fades
+  musicTransitionMs: 1200,
+  musicWindDownRate: 0.5,
+  // the sound and music buttons in the top-right corner
+  toggleButtonMargin: 10,
+  toggleButtonGap: 12,
   // ship FX (WebGL only): a soft neon glow in the ship's color, plus motion blur on the player
   shipGlowStrength: 3,
   // multiplies the glow's reach; it's measured in texture pixels, so it shrinks with the camera zoom
