@@ -3,6 +3,7 @@ import { generateAllTextures } from './utils/texture-generator';
 import { generateAllSounds, generateMusic, loadMuted } from './utils/audio';
 import { bakeGlowTextures } from './utils/glow';
 import { enemyKinds } from './entities/EnemyShip';
+import { Shield } from './entities/Shield';
 
 export default class BootScene extends Phaser.Scene {
   constructor() {
@@ -11,6 +12,7 @@ export default class BootScene extends Phaser.Scene {
 
   preload(): void {
     generateAllTextures(this);
+    Shield.generateTextures(this);
     generateAllSounds(this);
     generateMusic(this);
     this.sound.mute = loadMuted();
