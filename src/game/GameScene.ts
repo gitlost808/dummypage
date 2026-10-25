@@ -5,6 +5,7 @@ import { Projectile } from './entities/Projectile';
 import { EnemyProjectile } from './entities/EnemyProjectile';
 import { EnemyShip } from './entities/EnemyShip';
 import { Boss } from './entities/Boss';
+import { LaserBeam } from './entities/LaserBeam';
 import { ScoreSystem } from './systems/ScoreSystem';
 import { EnemySpawner } from './systems/EnemySpawner';
 import { PowerUpSystem } from './systems/PowerUpSystem';
@@ -38,8 +39,10 @@ export default class GameScene extends Phaser.Scene {
   private bossHealthBar!: BossHealthBar;
   // left and right edges of the playfield, redrawn on resize (see fitCamera)
   private playfieldBorder!: Phaser.GameObjects.Graphics;
+  private laser!: LaserBeam;
   private isGameOver = false;
   private nextFireAt = 0;
+  private nextLaserTickAt = 0;
 
   constructor() {
     super('GameScene');
@@ -50,6 +53,7 @@ export default class GameScene extends Phaser.Scene {
     this.isGameOver = false;
     this.gameOverOverlay = undefined;
     this.nextFireAt = 0;
+    this.nextLaserTickAt = 0;
     // gameOver() pauses the clock, and the Clock plugin survives the restart
     this.time.paused = false;
     // the clock only catches up with the game loop on the scene's first frame, so until then it still
@@ -73,6 +77,7 @@ export default class GameScene extends Phaser.Scene {
     const startX = constants.width / 2;
     const startY = constants.height - constants.bottomMargin;
     this.player = new PlayerShip(this, startX, startY, this.inputType);
+    this.laser = new LaserBeam(this);
 
     // projectile pool
     this.projectiles = Projectile.createPool(this);
@@ -140,17 +145,10 @@ export default class GameScene extends Phaser.Scene {
         const { x, y } = ship;
         // return the projectile to its pool instead of destroying it
         (proj as Projectile).disableBody(true, true);
-        if (!ship.damage()) {
-          // survived the hit: just a few sparks
-          this.effects.explode(x, y, 0xffffff, constants.enemyHitSparkParticles);
-          playSound(this, 'enemy-hit');
-          return;
-        }
-        ship.despawn();
-        this.effects.explode(x, y, ship.color);
-        playSound(this, 'explosion', randomDetune());
-        this.powerUps.maybeDrop(x, y);
-        this.scoreSystem.addPoints(ship.points);
+        if (ship.damage()) return this.destroyEnemy(ship);
+        // survived the hit: just a few sparks
+        this.effects.explode(x, y, 0xffffff, constants.enemyHitSparkParticles);
+        playSound(this, 'enemy-hit');
       },
       undefined,
       this
@@ -210,6 +208,14 @@ export default class GameScene extends Phaser.Scene {
 
     // fire while held; a buffered press fires as soon as the cooldown allows
     const wantsFire = this.inputType.fire || this.inputType.firePressed;
+    if (this.powerUps.isActive('laser')) {
+      if (wantsFire) this.laser.fire();
+      this.inputType.firePressed = false;
+      this.updateLaser();
+      return;
+    }
+    // the gun takes over the moment the laser runs out
+    this.laser.stop();
     if (wantsFire && this.time.now >= this.nextFireAt) {
       this.spawnProjectiles();
       this.inputType.firePressed = false;
@@ -217,8 +223,37 @@ export default class GameScene extends Phaser.Scene {
     }
   }
 
+  // the beam passes through enemies, killing each one it touches whatever its hit points, but stops at
+  // the boss, which takes damage in ticks so its hit flash flickers instead of hiding its attack blink
+  private updateLaser(): void {
+    const { x } = this.player;
+    const nose = this.player.y - 16;
+    const underside = this.boss.active ? this.boss.undersideAt(x) : undefined;
+    this.laser.update(x, nose, underside ?? 0, underside !== undefined);
+    if (!this.laser.isOn) return;
+
+    this.enemySpawner.getGroup().getMatching('active', true).forEach((enemy) => {
+      const ship = enemy as EnemyShip;
+      if (this.laser.overlaps(ship.body as Phaser.Physics.Arcade.Body)) this.destroyEnemy(ship);
+    });
+
+    if (underside === undefined || this.time.now < this.nextLaserTickAt) return;
+    this.nextLaserTickAt = this.time.now + constants.laserBossTickMs;
+    if (this.damageBoss(constants.laserBossDamage)) return;
+    this.effects.explode(x, underside, constants.laserColor, constants.enemyHitSparkParticles);
+  }
+
+  private destroyEnemy(ship: EnemyShip): void {
+    const { x, y } = ship;
+    ship.despawn();
+    this.effects.explode(x, y, ship.color);
+    playSound(this, 'explosion', randomDetune());
+    this.powerUps.maybeDrop(x, y);
+    this.scoreSystem.addPoints(ship.points);
+  }
+
   private spawnProjectiles(): void {
-    const velocities = this.powerUps.isSpreadActive()
+    const velocities = this.powerUps.isActive('spread')
       ? [-constants.spreadVelocityX, 0, constants.spreadVelocityX]
       : [0];
     for (const vx of velocities) this.spawnProjectile(vx);
@@ -301,6 +336,7 @@ export default class GameScene extends Phaser.Scene {
 
     // blow up the player; particles and camera effects keep running while paused
     this.player.setVisible(false);
+    this.laser.stop();
     this.effects.explode(
       this.player.x,
       this.player.y,

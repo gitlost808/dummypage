@@ -114,6 +114,13 @@ export function playSound(scene: Phaser.Scene, key: SoundKey, config: Phaser.Typ
   scene.sound.play(key, { volume: constants.soundVolume, ...config });
 }
 
+// a sound that repeats until its owner stops it; undefined without Web Audio
+export function loopSound(scene: Phaser.Scene, key: SoundKey): Phaser.Sound.BaseSound | undefined {
+  if (!scene.cache.audio.exists(key)) return undefined;
+  // the sound manager outlives scene restarts, like the music
+  return scene.sound.get(key) ?? scene.sound.add(key, { loop: true, volume: constants.soundVolume });
+}
+
 // slight random pitch variation so repeated sounds don't feel mechanical
 export function randomDetune(): Phaser.Types.Sound.SoundConfig {
   return { detune: Phaser.Math.Between(-constants.soundDetuneCents, constants.soundDetuneCents) };
