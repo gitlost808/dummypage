@@ -76,6 +76,12 @@ export class TouchInput implements InputController {
     // all state is event-driven
   }
 
+  // forget every finger: one lifted while the scene was paused never sends its pointerup here
+  public release(): void {
+    this.pointers = [];
+    this.dragging = this.fire = this.firePressed = false;
+  }
+
   private get steering(): Phaser.Input.Pointer | undefined {
     return this.pointers[this.pointers.length - 1];
   }

@@ -3,11 +3,14 @@ import BootScene from './BootScene';
 import BackgroundScene from './BackgroundScene';
 import TitleScene from './TitleScene';
 import GameScene from './GameScene';
+import PauseScene from './PauseScene';
 import { constants } from './constants';
 import { preferHighpShaders } from './utils/shader-precision';
+import { countOnlyPlayedTime } from './utils/play-clock';
 
 // before the game boots, so it covers every shader Phaser compiles
 preferHighpShaders();
+countOnlyPlayedTime();
 
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
@@ -27,7 +30,7 @@ const config: Phaser.Types.Core.GameConfig = {
     activePointers: 2,
   },
   // later scenes render on top
-  scene: [BootScene, BackgroundScene, TitleScene, GameScene],
+  scene: [BootScene, BackgroundScene, TitleScene, GameScene, PauseScene],
 };
 
 new Phaser.Game(config);

@@ -18,6 +18,7 @@ import { GameOverOverlay } from './ui/GameOverOverlay';
 import { MuteButton } from './ui/MuteButton';
 import { MusicButton } from './ui/MusicButton';
 import { VolumeSlider } from './ui/VolumeSlider';
+import { PauseButton } from './ui/PauseButton';
 import { WaveBanner } from './ui/WaveBanner';
 import { BossHealthBar } from './ui/BossHealthBar';
 import { playMusic, playSound, randomDetune, stopMusic } from './utils/audio';
@@ -25,6 +26,7 @@ import { fitPlayfieldCamera } from './utils/playfield';
 
 export default class GameScene extends Phaser.Scene {
   private inputType!: CombinedInput;
+  private touch!: TouchInput;
   private player!: PlayerShip;
   private projectiles!: Phaser.Physics.Arcade.Group;
   private enemyProjectiles!: Phaser.Physics.Arcade.Group;
@@ -35,6 +37,8 @@ export default class GameScene extends Phaser.Scene {
   private gameOverOverlay?: GameOverOverlay;
   private muteButton!: MuteButton;
   private musicButton!: MusicButton;
+  private pauseButton!: PauseButton;
+  private volumeSlider!: VolumeSlider;
   private waveBanner!: WaveBanner;
   private boss!: Boss;
   private bossHealthBar!: BossHealthBar;
@@ -57,10 +61,6 @@ export default class GameScene extends Phaser.Scene {
     this.nextLaserTickAt = 0;
     // gameOver() pauses the clock, and the Clock plugin survives the restart
     this.time.paused = false;
-    // the clock only catches up with the game loop on the scene's first frame, so until then it still
-    // reads the time the game launched; after a long look at the title screen, the spawner would count
-    // all that time as played and open the run at a high difficulty, with the first wave already over
-    this.time.now = this.game.loop.time;
     playMusic(this, 'main');
 
     // the playfield has a fixed size; the camera scales it to fit the window (see fitCamera)
@@ -69,10 +69,10 @@ export default class GameScene extends Phaser.Scene {
     this.physics.world.setBounds(0, 0, constants.width, constants.height);
 
     // keyboard and touch always work together; a mouse click counts as a touch
-    const touch = new TouchInput(this);
+    this.touch = new TouchInput(this);
     // keyboard players don't need the touch hints
-    this.input.keyboard.once('keydown', () => touch.fadeHints());
-    const inputs: InputController[] = [new KeyboardInput(this), touch];
+    this.input.keyboard.once('keydown', () => this.touch.fadeHints());
+    const inputs: InputController[] = [new KeyboardInput(this), this.touch];
     this.inputType = new CombinedInput(inputs);
 
     const startX = constants.width / 2;
@@ -104,7 +104,8 @@ export default class GameScene extends Phaser.Scene {
     this.effects = new EffectsSystem(this);
     this.muteButton = new MuteButton(this);
     this.musicButton = new MusicButton(this);
-    new VolumeSlider(this);
+    this.pauseButton = new PauseButton(this, () => this.pause());
+    this.volumeSlider = new VolumeSlider(this, 3);
 
     // collisions; checked pair by pair, so a second hit in the frame the shield breaks is skipped too
     const canHitPlayer = () => !this.player.isInvulnerable;
@@ -175,11 +176,41 @@ export default class GameScene extends Phaser.Scene {
     // everything lives in playfield coordinates, so a resize only refits the camera
     const onResize = (gameSize: Phaser.Structs.Size) => this.fitCamera(gameSize.width, gameSize.height);
 
-    // the ScaleManager outlives this scene, so detach on shutdown/restart
+    // a phone switching apps or a window losing focus pauses the run, so nothing happens while
+    // the player is away
+    const autoPause = () => this.pause();
+    this.game.events.on(Phaser.Core.Events.HIDDEN, autoPause);
+    this.game.events.on(Phaser.Core.Events.BLUR, autoPause);
+    this.events.on(Phaser.Scenes.Events.RESUME, this.onResume, this);
+
+    // the ScaleManager, the game and the scene's own events outlive this scene, so detach on shutdown/restart
     this.scale.on('resize', onResize, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.scale.off('resize', onResize, this);
+      this.game.events.off(Phaser.Core.Events.HIDDEN, autoPause);
+      this.game.events.off(Phaser.Core.Events.BLUR, autoPause);
+      this.events.off(Phaser.Scenes.Events.RESUME, this.onResume, this);
     });
+  }
+
+  // freeze the whole scene (physics, clock, tweens, updates) under the pause screen
+  private pause(): void {
+    // already paused, or nothing left to pause
+    if (this.isGameOver || !this.scene.isActive()) return;
+    // a finger lifted while paused never reaches this scene
+    this.touch.release();
+    this.sound.pauseAll();
+    this.scene.pause();
+    this.scene.launch('PauseScene');
+  }
+
+  private onResume(): void {
+    this.sound.resumeAll();
+    // the pause screen has audio controls of its own, and the pause button drew its play icon
+    this.muteButton.redraw();
+    this.musicButton.redraw();
+    this.pauseButton.redraw();
+    this.volumeSlider.redraw();
   }
 
   // nothing clips the playfield, so objects that leave it despawn instead
@@ -338,6 +369,8 @@ export default class GameScene extends Phaser.Scene {
 
     // blow up the player; particles and camera effects keep running while paused
     this.player.setVisible(false);
+    // nothing left to pause
+    this.pauseButton.setVisible(false);
     this.laser.stop();
     this.effects.explode(
       this.player.x,
