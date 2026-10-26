@@ -12,8 +12,9 @@ export class VolumeSlider extends Phaser.GameObjects.Container {
   private valueText: Phaser.GameObjects.Text;
   private pointer?: Phaser.Input.Pointer;
 
-  constructor(scene: Phaser.Scene) {
-    const x = constants.width - constants.toggleButtonMargin - 2 * (size + constants.toggleButtonGap) - width - 8;
+  // buttons is how many toggle buttons sit to its right
+  constructor(scene: Phaser.Scene, buttons = 2) {
+    const x = constants.width - constants.toggleButtonMargin - buttons * (size + constants.toggleButtonGap) - width - 8;
     super(scene, x, constants.toggleButtonMargin);
     scene.add.existing(this);
     // Settings remain available above the game-over overlay.
@@ -74,7 +75,8 @@ export class VolumeSlider extends Phaser.GameObjects.Container {
     this.redraw();
   }
 
-  private redraw(): void {
+  // for when the volume changed somewhere else
+  public redraw(): void {
     const volume = this.scene.sound.volume;
     this.valueText.setText(`${Math.round(volume * 100)}%`);
     this.track.clear();

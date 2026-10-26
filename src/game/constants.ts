@@ -211,6 +211,9 @@ export const constants = {
   gameOverBackdropAlpha: 0.6,
   // ignore restart input for this long after dying (in ms)
   gameOverInputDelayMs: 600,
+  // pause screen
+  pauseColor: 0x268bd2,
+  pauseBackdropAlpha: 0.6,
   // minimum time between volleys while fire is held (in ms)
   fireCooldownMs: 180,
   // tank: slow, takes several hits
