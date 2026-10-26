@@ -3,6 +3,7 @@ import { constants } from './constants';
 import { Legend } from './ui/Legend';
 import { MuteButton } from './ui/MuteButton';
 import { MusicButton } from './ui/MusicButton';
+import { VolumeSlider } from './ui/VolumeSlider';
 import { fitPlayfieldCamera } from './utils/playfield';
 
 const toHex = (color: number) => `#${color.toString(16).padStart(6, '0')}`;
@@ -39,6 +40,7 @@ export default class TitleScene extends Phaser.Scene {
     // so sound and music can be set before the first run
     new MuteButton(this);
     new MusicButton(this);
+    new VolumeSlider(this);
 
     // a held key auto-repeats keydown; wait for a fresh press
     const onKey = (event: KeyboardEvent) => {
@@ -46,7 +48,7 @@ export default class TitleScene extends Phaser.Scene {
     };
     this.input.keyboard.on('keydown-SPACE', onKey);
     this.input.keyboard.on('keydown-ENTER', onKey);
-    // taps on the sound and music buttons shouldn't start the game
+    // taps on the audio controls shouldn't start the game
     this.input.on('pointerdown', (_pointer: Phaser.Input.Pointer, currentlyOver: Phaser.GameObjects.GameObject[]) => {
       if (currentlyOver.length === 0) this.scene.start('GameScene');
     });

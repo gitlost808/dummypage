@@ -6,6 +6,7 @@ import { RenderedTrack, trackKeys, TrackKey } from '../music';
 
 const mutedKey = 'galactic-skirmish:muted';
 const musicOffKey = 'galactic-skirmish:music-off';
+const volumeKey = 'galactic-skirmish:volume';
 
 // synthesize every sound into the audio cache, like generateAllTextures does for textures
 export function generateAllSounds(scene: Phaser.Scene): void {
@@ -77,6 +78,17 @@ export function toggleMusic(scene: Phaser.Scene): void {
   for (const track of trackKeys) scene.sound.get<Phaser.Sound.WebAudioSound>(musicKey(track))?.setMute(musicOff);
 }
 
+// The shared sound manager applies this gain to music and every sound effect, including loops.
+export function setVolume(scene: Phaser.Scene, volume: number): void {
+  if (!Number.isFinite(volume)) return;
+  scene.sound.volume = Phaser.Math.Clamp(volume, 0, 1);
+  try {
+    localStorage.setItem(volumeKey, String(scene.sound.volume));
+  } catch {
+    // ignore, the setting just won't survive a reload
+  }
+}
+
 function startTrack(sound: Phaser.Sound.BaseSoundManager, track: TrackKey, silent: boolean): Phaser.Sound.BaseSound {
   const music = sound.get(musicKey(track)) ?? sound.add(musicKey(track));
   // a wound-down track was left slowed, so reset the rate too
@@ -128,6 +140,17 @@ export function randomDetune(): Phaser.Types.Sound.SoundConfig {
 
 export const loadMuted = () => loadFlag(mutedKey);
 export const saveMuted = (muted: boolean) => saveFlag(mutedKey, muted);
+
+export function loadVolume(): number {
+  try {
+    const saved = localStorage.getItem(volumeKey);
+    if (saved === null || saved.trim() === '') return 1;
+    const volume = Number(saved);
+    return Number.isFinite(volume) && volume >= 0 && volume <= 1 ? volume : 1;
+  } catch {
+    return 1;
+  }
+}
 
 // storage can be unavailable (private mode, blocked site data), so never throw
 function loadFlag(key: string): boolean {

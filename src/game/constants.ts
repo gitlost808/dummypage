@@ -293,7 +293,7 @@ export const constants = {
   // white flash and spark burst when an enemy survives a hit
   enemyHitFlashMs: 60,
   enemyHitSparkParticles: 4,
-  // sound: master volume, and the minimum gap before the same sound plays again
+  // sound effects: base volume, and the minimum gap before the same sound plays again
   soundVolume: 0.8,
   soundMinIntervalMs: 40,
   // random pitch variation for frequent sounds (cents)
