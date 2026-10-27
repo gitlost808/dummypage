@@ -28,32 +28,40 @@
   }
 }
 
-@keyframes lineglow {
+@mixin lineglow($size-property, $collapsed-size, $expanded-size) {
   0% {
     clip-path: inset(0 100% 0 0);
     opacity: 0;
-    max-height: 0;
+    #{$size-property}: $collapsed-size;
   }
 
   33% {
     clip-path: inset(0 0 0 0);
     opacity: 1;
-    max-height: 0;
+    #{$size-property}: $collapsed-size;
   }
 
   66% {
     clip-path: inset(0 0 0 0);
     opacity: 1;
     padding: 0;
-    max-height: 0;
+    #{$size-property}: $collapsed-size;
   }
 
   100% {
     clip-path: inset(0 0 0 0);
     opacity: 1;
     padding: 16px;
-    max-height: 800px;
+    #{$size-property}: $expanded-size;
   }
+}
+
+@keyframes lineglow {
+  @include lineglow(max-height, 0, 800px);
+}
+
+@keyframes service-lineglow {
+  @include lineglow(grid-template-rows, 0fr, 1fr);
 }
 
 @keyframes modalglow {
