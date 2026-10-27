@@ -95,13 +95,13 @@ export class GameOverOverlay extends Phaser.GameObjects.Container {
   }
 
   // cover the whole window, not just the playfield, so the bars around it on tall or wide screens
-  // are dimmed too. The view is in playfield units, centred on the playfield (see GameScene.fitCamera);
+  // are dimmed too. The view is in playfield units, centred horizontally and aligned to the top;
   // a little extra on each side keeps the edges hidden while the death shake moves the camera
   public fitBackdrop(viewWidth: number, viewHeight: number): void {
     const width = viewWidth * 1.1;
     const height = viewHeight * 1.1;
     this.backdrop
-      .setPosition((constants.width - width) / 2, (constants.height - height) / 2)
+      .setPosition((constants.width - width) / 2, (viewHeight - height) / 2)
       .setSize(width, height);
   }
 

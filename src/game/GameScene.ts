@@ -217,16 +217,14 @@ export default class GameScene extends Phaser.Scene {
   private fitCamera(width: number, height: number): void {
     const zoom = fitPlayfieldCamera(this.cameras.main, width, height);
 
-    // only the sides get a border, running the full height of the window (through any bars above
-    // and below the playfield), since enemies enter at the top and bullets leave at the bottom
-    const halfViewHeight = height / zoom / 2;
-    const top = constants.height / 2 - halfViewHeight;
-    const bottom = constants.height / 2 + halfViewHeight;
+    // only the sides get a border, running the full height of the window, including any space
+    // below the playfield, since enemies enter at the top and bullets leave at the bottom
+    const bottom = height / zoom;
     this.playfieldBorder
       .clear()
       .lineStyle(2, constants.playfieldBorderColor, constants.playfieldBorderAlpha)
-      .lineBetween(0, top, 0, bottom)
-      .lineBetween(constants.width, top, constants.width, bottom);
+      .lineBetween(0, 0, 0, bottom)
+      .lineBetween(constants.width, 0, constants.width, bottom);
 
     this.gameOverOverlay?.fitBackdrop(width / zoom, height / zoom);
   }

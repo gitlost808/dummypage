@@ -61,7 +61,7 @@ export default class PauseScene extends Phaser.Scene {
     const viewWidth = width / zoom;
     const viewHeight = height / zoom;
     this.backdrop
-      .setPosition((constants.width - viewWidth) / 2, (constants.height - viewHeight) / 2)
+      .setPosition((constants.width - viewWidth) / 2, 0)
       .setSize(viewWidth, viewHeight);
   }
 
