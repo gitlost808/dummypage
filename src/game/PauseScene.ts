@@ -4,6 +4,7 @@ import { MuteButton } from './ui/MuteButton';
 import { MusicButton } from './ui/MusicButton';
 import { PauseButton } from './ui/PauseButton';
 import { VolumeSlider } from './ui/VolumeSlider';
+import { VersionLabel } from './ui/VersionLabel';
 import { fitPlayfieldCamera } from './utils/playfield';
 
 const toHex = (color: number) => `#${color.toString(16).padStart(6, '0')}`;
@@ -35,6 +36,7 @@ export default class PauseScene extends Phaser.Scene {
     new MuteButton(this);
     new MusicButton(this);
     new VolumeSlider(this, 3);
+    new VersionLabel(this);
 
     // a held key auto-repeats keydown; wait for a fresh press
     const onKey = (event: KeyboardEvent) => {
