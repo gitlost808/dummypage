@@ -21,3 +21,8 @@ npm run start
 ```
 npm run build
 ```
+
+# Galactic Skirmish
+
+See the [game README](src/game/README.md) for versioning and release instructions,
+and the [game changelog](src/game/CHANGELOG.md) for release notes.
