@@ -446,15 +446,19 @@ export class EnemyShip extends Ship {
       return;
     }
 
-    // aim at the player with some jitter; always keep a downward component so the bullets leave
-    // through the bottom of the screen. A fan is clamped as a whole, so its outer shots stay inside too
+    // tanks descend past the player, so hold fire before their shots become point-blank or lateral
+    if (this.profile.kind === "tank" && this.target.y - y < constants.tankMinFireHeight) return;
+
+    // aim at the player with some jitter; tanks have a narrower downward arc than hovering gunners.
+    // A fan is clamped as a whole, so its outer shots stay inside the downward arc too
+    const minAngle = this.profile.kind === "tank" ? constants.tankMinAimAngle : constants.gunnerMinAimAngle;
     const shots = this.profile.shot === "fan" ? constants.gunnerFanShots : 1;
     const halfArc = ((shots - 1) / 2) * constants.gunnerFanSpread;
     const jitter = Phaser.Math.FloatBetween(-constants.gunnerAimJitter, constants.gunnerAimJitter);
     const center = Phaser.Math.Clamp(
       Math.atan2(this.target.y - y, this.target.x - this.x) + jitter,
-      constants.gunnerMinAimAngle + halfArc,
-      Math.PI - constants.gunnerMinAimAngle - halfArc
+      minAngle + halfArc,
+      Math.PI - minAngle - halfArc
     );
     let fired = false;
     for (let i = 0; i < shots; i++) {

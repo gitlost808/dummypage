@@ -224,6 +224,10 @@ export const constants = {
   // a hit knocks a tank back: its fall speed drops by this multiple of itself, then recovers.
   // Without it, a tank close to the player lands on it before the third hit, so it can't be shot down
   tankRecoil: 1.5,
+  // aimed tanks stay within 45 degrees of straight down instead of firing across the player's row
+  tankMinAimAngle: Math.PI / 4,
+  // minimum vertical gap from muzzle to player (px), leaving time to dodge before tanks hold fire
+  tankMinFireHeight: 150,
   // gunner: fires aimed shots at the player (so do tanks, once escalated)
   gunnerColor: 0xd33682,
   gunnerPoints: 20,
