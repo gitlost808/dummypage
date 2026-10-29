@@ -1,11 +1,6 @@
-import { globalRippler } from "./common/scripts/rippler";
-import { createTyper } from "./common/scripts/typer";
-import {
-  animationSleep,
-  getAnimationFastForwardVersion,
-  setupAnimationFastForwardOnClick,
-  sleep,
-} from "./common/scripts/util";
+import { createIntro } from "./common/scripts/intro";
+import { bootPage } from "./common/scripts/page";
+import { sleep } from "./common/scripts/util";
 
 const texts = [
   "processing your click...",
@@ -43,37 +38,17 @@ function getNextText() {
 }
 
 async function main() {
-  const fastForwardVersion = getAnimationFastForwardVersion();
-  const typers = Array.from(
-    document.querySelectorAll<HTMLElement>(
-      ".textcontainer > *, .subcontainer > *",
-    ),
-  ).map((el) => createTyper(el));
-  typers.forEach(async (typer) => await typer.hide());
-  const typerTypers = typers.map((typer) => {
-    return typer.type;
+  const intro = createIntro({
+    heading: document.querySelector<HTMLElement>(".textcontainer > h1"),
+    lines: Array.from(document.querySelectorAll<HTMLElement>(".subcontainer > *")),
   });
-  let firstTyper = typerTypers.shift();
-  if (firstTyper) firstTyper();
-  await animationSleep(0x29a * 2);
-  if (fastForwardVersion === getAnimationFastForwardVersion()) {
-    for (const typer of typerTypers) {
-      await typer();
-      if (fastForwardVersion !== getAnimationFastForwardVersion()) {
-        break;
-      }
-    }
-  }
+  await intro.play();
 
-  const lastTyper = typers.at(-1);
+  const lastTyper = intro.typers.at(-1);
   while (true) {
     await sleep(0x29a * 2);
     const text = getNextText();
     await lastTyper?.changeText(text, 0x29a);
   }
 }
-document.addEventListener("DOMContentLoaded", () => {
-  main();
-  globalRippler();
-  setupAnimationFastForwardOnClick();
-});
+bootPage(main);

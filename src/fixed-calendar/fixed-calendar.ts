@@ -1,6 +1,6 @@
-import { globalRippler, rippleCenter } from "../common/scripts/rippler";
-import { createTyper } from "../common/scripts/typer";
-import { sleep } from "../common/scripts/util";
+import "../common/components/live-value/live-value";
+import { createIntro } from "../common/scripts/intro";
+import { bootPage } from "../common/scripts/page";
 
 const IFC_MONTHS = [
   "January",
@@ -27,8 +27,6 @@ const IFC_WEEKDAYS = [
   "Friday",
   "Saturday",
 ];
-
-let lastRenderedText = "";
 
 function isLeapYear(year: number) {
   return (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
@@ -74,25 +72,10 @@ function toIFCDate(date: Date) {
   };
 }
 
-function renderDate(forceRipple = false) {
-  const titleEl = document.querySelector(".textcontainer > h1");
-  if (!(titleEl instanceof HTMLElement)) return;
-
-  const ifcDate = toIFCDate(new Date());
-  if (ifcDate.display === lastRenderedText && !forceRipple) return;
-
-  titleEl.innerHTML = "";
-  ifcDate.display.split("").forEach((char) => {
-    const span = document.createElement("span");
-    span.classList.add("fadetext");
-    span.textContent = char;
-    titleEl.appendChild(span);
-  });
-
-  if (lastRenderedText !== "") {
-    rippleCenter(titleEl);
-  }
-  lastRenderedText = ifcDate.display;
+function renderDate(force = false) {
+  document
+    .querySelector("live-value")
+    ?.update(toIFCDate(new Date()).display, { force });
 }
 
 function setupButtons() {
@@ -125,18 +108,12 @@ async function runner() {
   renderDate();
   scheduleMidnightRefresh();
 
-  const typers = [
-    createTyper(document.querySelector(".subcontainer > p")),
-    createTyper(document.querySelector(".hint")),
-  ];
-
-  typers.forEach(async (typer) => await typer.hide());
-  await sleep(0x29a * 2);
-  await typers[0].type();
-  await typers[1].type();
+  await createIntro({
+    lines: [
+      document.querySelector<HTMLElement>(".subcontainer > p"),
+      document.querySelector<HTMLElement>(".hint"),
+    ],
+  }).play();
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-  runner();
-  globalRippler();
-});
+bootPage(runner);

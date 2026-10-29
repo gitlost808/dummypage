@@ -2,7 +2,6 @@ extends ../common/templates/layout.pug
 
 block prepend content
   - var title = "fixed calendar"
-  - var subtitle = "-"
   - var text = "international fixed calendar"
 
 block scripts
@@ -11,11 +10,13 @@ block scripts
     type="module"
   )
 
+block heading
+  h1
+    live-value -
+
 block append subcontainer
   p.hint local timezone
 
 block append text
-  button#refreshButton.btn.btn-transform.btn-anim-staggering(type="button" title="refresh" tabindex="0")
-    i.fa-solid.fa-refresh
-  button#copyButton.btn.btn-transform.btn-anim-staggering(type="button" title="copy" tabindex="0")
-    i.fa-regular.fa-copy
+  +iconButton("fa-solid fa-refresh", "refresh")#refreshButton
+  +iconButton("fa-regular fa-copy", "copy")#copyButton

@@ -1,11 +1,7 @@
-import { globalRippler } from "../common/scripts/rippler";
-import { createTyper } from "../common/scripts/typer";
+import { createIntro } from "../common/scripts/intro";
+import { bootPage } from "../common/scripts/page";
 import localServices from "./service.json";
-import {
-  getAnimationFastForwardVersion,
-  onAnimationsFastForward,
-  setupAnimationFastForwardOnClick,
-} from "../common/scripts/util";
+import { onAnimationsFastForward } from "../common/scripts/util";
 
 type Service = {
   name: string;
@@ -104,34 +100,14 @@ async function fetchLiveServices(): Promise<unknown> {
   return response.json();
 }
 
-async function animateIntro() {
-  const fastForwardVersion = getAnimationFastForwardVersion();
-  const typers = Array.from(
-    document.querySelectorAll<HTMLElement>(".services .textcontainer > *"),
-  ).map((element) => createTyper(element));
-
-  await Promise.all(typers.map((typer) => typer.hide()));
-  const [headingTyper, ...remainingTypers] = typers;
-  await headingTyper?.type();
-
-  if (fastForwardVersion === getAnimationFastForwardVersion()) {
-    for (const typer of remainingTypers) {
-      await typer.type();
-      if (fastForwardVersion !== getAnimationFastForwardVersion()) break;
-    }
-  }
-}
-
 async function main() {
-  globalRippler();
-  setupAnimationFastForwardOnClick();
-  await animateIntro();
+  await createIntro({
+    heading: document.querySelector<HTMLElement>(".services .textcontainer > h1"),
+  }).play();
   await loadServices();
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-  main();
-});
+bootPage(main);
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", function () {

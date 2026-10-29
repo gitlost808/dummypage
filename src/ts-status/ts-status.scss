@@ -1,0 +1,17 @@
+@use "../common/styles/variables";
+@use "../common/components/modal-dialog/modal-dialog";
+
+.player-list {
+  list-style: none;
+  padding: 0;
+  
+  li {
+    margin-bottom: variables.$margin-bottom;
+
+    i {
+      margin-right: variables.$margin-bottom;
+      min-width: 16px;
+      text-align: center;
+    }
+  }
+}
