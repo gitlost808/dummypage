@@ -1,0 +1,10 @@
+//- the block becomes the modal's body; pages import modal-dialog.ts and @use modal-dialog.scss
+mixin modal(id, title)
+  modal-dialog(id=id)
+    dialog.modal(aria-labelledby=id + "-title")
+      .modal-header
+        h2(id=id + "-title")= title
+        button.btn.modal-close(type="button" title="close" aria-label="Close modal" data-modal-close)
+          i.fa-solid.fa-xmark(aria-hidden="true")
+      .modal-body
+        block

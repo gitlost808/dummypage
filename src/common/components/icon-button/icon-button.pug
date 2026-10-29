@@ -1,0 +1,8 @@
+//- an icon-only action button; passing href renders a link instead
+mixin iconButton(icon, title)
+  if attributes.href
+    a.btn.btn-transform.btn-anim-staggering(title=title aria-label=title)&attributes(attributes)
+      i(class=icon aria-hidden="true")
+  else
+    button.btn.btn-transform.btn-anim-staggering(type="button" title=title aria-label=title)&attributes(attributes)
+      i(class=icon aria-hidden="true")

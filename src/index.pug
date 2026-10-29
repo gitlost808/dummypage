@@ -6,5 +6,4 @@ block prepend content
     - var hint = "waiting for signal..."
 
 block append text
-    a#servicesButton.btn.btn-transform.btn-anim-staggering(href="/services/" title="services" aria-label="Open services")
-        i.fa-solid.fa-list
+    +iconButton("fa-solid fa-list", "services")#servicesButton(href="/services/" aria-label="Open services")

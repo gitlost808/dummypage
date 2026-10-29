@@ -1,20 +1,15 @@
-import { rippleCenter, globalRippler } from "../common/scripts/rippler";
-import { createTyper } from "../common/scripts/typer";
-import {
-  animationSleep,
-  getAnimationFastForwardVersion,
-  setupAnimationFastForwardOnClick,
-  sleep,
-} from "../common/scripts/util";
+import "../common/components/live-value/live-value";
+import "../common/components/modal-dialog/modal-dialog";
+import { createIntro } from "../common/scripts/intro";
+import { bootPage } from "../common/scripts/page";
+import { sleep } from "../common/scripts/util";
 
 const retryInterval = 0x29a * 0x69;
 const MAX_RETRY_ATTEMPTS = 10;
 let retryAttempts = 0;
 
-let firstFetch = true;
-let userCount = "0";
 let filteredUsers = [];
-const playerListUl = document.querySelector("#modalBackdrop .modal-body > ul");
+const playerListUl = document.querySelector("#userlist .player-list");
 const filteredDbIds = ["76", "75", "107"];
 const whatsappParticipantsEndpoint =
   "https://ts.0x29a.me/api/v1/calls/active/participants";
@@ -79,24 +74,7 @@ async function updateUserCount(noRetry = false) {
     );
     filteredUsers = [...teamspeakUsers, ...whatsappUsers];
     await updatePlayerList();
-    const el = document.querySelector(".textcontainer > h1");
-    userCount = filteredUsers.length.toString();
-
-    if (el.textContent !== userCount) {
-      el.innerHTML = "";
-      userCount.split("").forEach((c) => {
-        const userNumberSpan = document.createElement("span");
-        userNumberSpan.classList.add("fadetext");
-        userNumberSpan.textContent = c;
-        el.appendChild(userNumberSpan);
-      });
-
-      if (firstFetch) {
-        firstFetch = false;
-      } else {
-        rippleCenter(el);
-      }
-    }
+    document.querySelector("live-value").value = filteredUsers.length.toString();
 
     // Reset retry attempts on successful fetch
     retryAttempts = 0;
@@ -161,74 +139,21 @@ function setupCopyButton() {
 }
 
 function setupListButton() {
-  const listButton = document.querySelector("#listButton");
-  const modalClose = document.querySelector("#modalClose") as HTMLElement | null;
-  const modalBackdrop = document.querySelector("#modalBackdrop");
-  const modal = document.querySelector("#modalBackdrop .modal");
-  let previouslyFocused: Element | null = null;
-
-  function openModal() {
-    previouslyFocused = document.activeElement as Element;
-    modalBackdrop.classList.add("active");
-    history.pushState({ modalOpen: true }, "", window.location.href);
-    modalClose?.focus();
-  }
-
-  function closeModal(fromPopState = false) {
-    modalBackdrop.classList.remove("active");
-
-    if (!fromPopState && history.state?.modalOpen) {
-      history.back();
-    }
-    if (previouslyFocused instanceof HTMLElement) {
-      previouslyFocused.focus();
-    }
-  }
-
-  window.addEventListener("popstate", (e) => {
-    if (modalBackdrop.classList.contains("active")) {
-      closeModal(true);
-    }
-  });
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && modalBackdrop.classList.contains("active")) {
-      e.preventDefault();
-      closeModal();
-    }
-  });
-
-  listButton.addEventListener("click", (e) => {
+  const modal = document.querySelector("modal-dialog");
+  document.querySelector("#listButton")?.addEventListener("click", (e) => {
+    // the global click handler would fast-forward the modal's opening animation
     e.stopPropagation();
-
-    if (modalBackdrop.classList.contains("active")) {
-      closeModal();
-    } else {
-      openModal();
-    }
-  });
-
-  modal.addEventListener("click", (e) => e.stopPropagation());
-
-  document.addEventListener("click", (e) => {
-    if (
-      !modal.contains(e.target as Node) &&
-      modalBackdrop.classList.contains("active")
-    ) {
-      closeModal();
-    }
-  });
-
-  modalClose.addEventListener("click", () => {
-    closeModal();
+    modal.open();
   });
 }
 
 async function runner() {
-  const typers = [
-    createTyper(document.querySelector(".subcontainer > p")),
-    createTyper(document.querySelector(".hint")),
-  ];
-  typers.forEach(async (typer) => await typer.hide());
+  const intro = createIntro({
+    lines: [
+      document.querySelector<HTMLElement>(".subcontainer > p"),
+      document.querySelector<HTMLElement>(".hint"),
+    ],
+  });
 
   try {
     await updateUserCount();
@@ -242,26 +167,9 @@ async function runner() {
   setupCopyButton();
   setupListButton();
 
-  if ("false" === document.querySelector<HTMLElement>(".subcontainer > p")?.dataset.hidden) {
-    return;
-  }
-
-  const fastForwardVersion = getAnimationFastForwardVersion();
-  await animationSleep(0x29a * 2);
-  if (fastForwardVersion !== getAnimationFastForwardVersion()) {
-    return;
-  }
-  await typers[0].type();
-  if (fastForwardVersion !== getAnimationFastForwardVersion()) {
-    return;
-  }
-  await typers[1].type();
+  await intro.play();
 }
-document.addEventListener("DOMContentLoaded", () => {
-  runner();
-  globalRippler();
-  setupAnimationFastForwardOnClick();
-});
+bootPage(runner);
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", function () {
