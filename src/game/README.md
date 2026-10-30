@@ -4,26 +4,6 @@
 
 I've created this tiny game as an experiment on how far vibe coding has come. And I have to say, it's pretty incredible!
 
-## Display scaling
-
-The playfield stays at 540×960 logical pixels. The canvas drawing buffer follows
-the viewport's device pixels, including changes in window size, browser zoom,
-and monitor density. Phaser 4 uses `Scale.NONE` with an inverse display zoom for
-this; its game configuration has no renderer `resolution` option.
-
-Small procedural sprites, shields, and baked enemy glows are generated at 4×
-resolution. Texture frames keep their native pixel sizes; sprites use Phaser's
-`setDisplaySize` / `setScale` APIs to fit the gameplay dimensions. Hull sizes are
-defined in `spriteSizes`, and Arcade hitboxes use source pixels with the same
-sprite scale, excluding any glow padding. Text resolution follows the playfield
-camera's zoom, including text in containers
-and overlays created later. Background star sizes and speeds stay in CSS pixels.
-
-When changing rendering, check a 3840×2160 viewport and a dense mobile viewport,
-then resize and switch pixel density in both directions. Check title, pause,
-and game-over text, pointer alignment, ship collision sizes, and projectile sizes
-after pool reuse. Check formation spacing and where the laser stops on the boss.
-
 ## Persistent leaderboard
 
 The game uses [spacegame-backend](https://github.com/gitlost808/spacegame-backend)

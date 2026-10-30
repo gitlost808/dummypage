@@ -2,11 +2,10 @@ import Phaser from "phaser";
 import { Ship } from "./Ship";
 import { PlayerShip } from "./PlayerShip";
 import { constants } from "../constants";
-import { EnemyProjectile, EnemyProjectileTexture } from "./EnemyProjectile";
+import { EnemyProjectile } from "./EnemyProjectile";
 import { playSound, randomDetune } from "../utils/audio";
 import { glowTextureKey } from "../utils/glow";
 import { LegendEntry } from "./LegendEntry";
-import { spriteSizes, textureResolution } from '../utils/texture-resolution';
 
 export type EnemyBehavior = "basic" | "strafer" | "diver" | "hover";
 // what the enemy is (movement comes from its behavior)
@@ -63,7 +62,7 @@ export class EnemyShip extends Ship {
   private fireTimer?: Phaser.Time.TimerEvent;
   private flashTimer?: Phaser.Time.TimerEvent;
   private hp = 1;
-  // The glow adds visual padding; gameplay sizes always refer to the hull.
+  // the texture may carry a baked glow around the hull, so sizes come from the hull's own texture
   public hullWidth = 0;
   public hullHeight = 0;
 
@@ -124,15 +123,14 @@ export class EnemyShip extends Ship {
     this.speed = profile.speed;
     // reset all state, since pooled enemies get reused
     const kind = enemyKinds[profile.kind];
-    const hull = spriteSizes[kind.texture];
+    const hull = this.scene.textures.getFrame(kind.texture);
     this.hullWidth = hull.width;
     this.hullHeight = hull.height;
     // the baked glow is missing under the canvas renderer
     const glowTexture = glowTextureKey(kind.texture);
     this.setTexture(this.scene.textures.exists(glowTexture) ? glowTexture : kind.texture);
-    this.setDisplaySize(this.width / textureResolution, this.height / textureResolution);
     // centred on the texture, so it covers the hull and not the glow
-    (this.body as Phaser.Physics.Arcade.Body).setSize(hull.width / this.scaleX, hull.height / this.scaleY);
+    (this.body as Phaser.Physics.Arcade.Body).setSize(hull.width, hull.height);
     this.clearTint();
     this.hp = kind.hp;
     this.diveState = "none";
@@ -471,10 +469,13 @@ export class EnemyShip extends Ship {
   }
 
   // returns false when the pool is exhausted
-  private fireBullet(texture: EnemyProjectileTexture, y: number, angle: number, speed: number): boolean {
+  private fireBullet(texture: string, y: number, angle: number, speed: number): boolean {
     const bullet = this.projectilePool?.get(this.x, y) as EnemyProjectile | null;
     if (!bullet) return false;
-    bullet.reset(this.x, y, Math.cos(angle) * speed, Math.sin(angle) * speed, texture);
+    // pooled bullets keep their last texture, so always set it (and the body size)
+    bullet.setTexture(texture);
+    (bullet.body as Phaser.Physics.Arcade.Body).setSize();
+    bullet.reset(this.x, y, Math.cos(angle) * speed, Math.sin(angle) * speed);
     return true;
   }
 

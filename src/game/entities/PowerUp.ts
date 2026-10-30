@@ -1,7 +1,6 @@
 import Phaser from 'phaser';
 import { constants } from '../constants';
 import { LegendEntry } from './LegendEntry';
-import { spriteSizes } from '../utils/texture-resolution';
 
 export type PowerUpType = 'shield' | 'spread' | 'laser' | 'bomb';
 // the ones that last a while, counting down under the score
@@ -41,16 +40,13 @@ export class PowerUp extends Phaser.Physics.Arcade.Sprite {
   constructor(scene: Phaser.Scene, x: number, y: number, type: PowerUpType) {
     super(scene, x, y, powerUpKinds[type].texture);
     this.powerUpType = type;
-    const { width, height } = spriteSizes[powerUpKinds[type].texture];
-    this.setDisplaySize(width, height);
     scene.add.existing(this);
     scene.physics.add.existing(this);
-    (this.body as Phaser.Physics.Arcade.Body).setSize(width / this.scaleX, height / this.scaleY);
 
     // gentle pulse so pickups stand out from enemies
     scene.tweens.add({
       targets: this,
-      scale: this.scaleX * 1.15,
+      scale: 1.15,
       duration: 400,
       yoyo: true,
       repeat: -1,
@@ -62,6 +58,6 @@ export class PowerUp extends Phaser.Physics.Arcade.Sprite {
 
   update(): void {
     this.setVelocityY(constants.powerUpSpeed);
-    if (this.y > constants.height + spriteSizes[powerUpKinds[this.powerUpType].texture].height) this.destroy();
+    if (this.y > constants.height + this.height) this.destroy();
   }
 }

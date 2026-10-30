@@ -2,7 +2,7 @@ canvas {
   touch-action: none;
 }
 
-// The drawing buffer follows this parent's size and the display's pixel density.
+// phaser's RESIZE scale mode sizes the canvas to its parent, so the parent must fill the viewport
 #game {
   position: fixed;
   inset: 0;

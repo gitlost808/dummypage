@@ -1,6 +1,5 @@
 import Phaser from 'phaser';
 import { constants } from '../constants';
-import { textureResolution } from '../utils/texture-resolution';
 
 type Layer = { container: Phaser.GameObjects.Container; glints: Phaser.GameObjects.Image[] };
 
@@ -34,20 +33,17 @@ export class Shield {
       const radii = layerRadii(i);
       const width = Math.ceil(radii.x + padding) * 2;
       const height = Math.ceil(radii.y + padding) * 2;
-      const texture = scene.textures.createCanvas(layerTextureKey(i), width * textureResolution, height * textureResolution);
+      const texture = scene.textures.createCanvas(layerTextureKey(i), width, height);
       if (!texture) continue;
-      const context = texture.getContext();
-      context.scale(textureResolution, textureResolution);
-      drawLayer(context, width / 2, height / 2, radii.x, radii.y);
+      drawLayer(texture.getContext(), width / 2, height / 2, radii.x, radii.y);
       texture.refresh();
     }
 
     // a short streak of light, lying along the rim
     const { width, height } = constants.shieldGlintSize;
-    const texture = scene.textures.createCanvas(glintTextureKey, width * textureResolution, height * textureResolution);
+    const texture = scene.textures.createCanvas(glintTextureKey, width, height);
     if (!texture) return;
     const context = texture.getContext();
-    context.scale(textureResolution, textureResolution);
     context.translate(width / 2, height / 2);
     context.scale(1, height / width);
     const glow = context.createRadialGradient(0, 0, 0, 0, 0, width / 2);
@@ -70,10 +66,7 @@ export class Shield {
     const glints = Array.from({ length: constants.shieldGlints }, () =>
       this.scene.add.image(0, 0, glintTextureKey)
     );
-    for (const image of [rim, ...glints]) {
-      image.setDisplaySize(image.width / textureResolution, image.height / textureResolution);
-      image.setBlendMode(Phaser.BlendModes.ADD);
-    }
+    for (const image of [rim, ...glints]) image.setBlendMode(Phaser.BlendModes.ADD);
     const container = this.scene.add.container(x, y, [rim, ...glints]);
     this.layers.push({ container, glints });
 
@@ -162,7 +155,7 @@ function drawLayer(context: CanvasRenderingContext2D, cx: number, cy: number, rx
   context.beginPath();
   context.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
   context.shadowColor = rgba(constants.shieldColor, 1);
-  context.shadowBlur = constants.shieldGlowBlur * textureResolution;
+  context.shadowBlur = constants.shieldGlowBlur;
   context.strokeStyle = rgba(constants.shieldColor, 0.9);
   context.lineWidth = 2.5;
   context.stroke();

@@ -12,17 +12,8 @@ export default class BackgroundScene extends Phaser.Scene {
 
   create(): void {
     this.starfield = new Starfield(this);
-    this.fitCamera();
     // this scene is never stopped, so the listener needs no cleanup
-    this.scale.on('resize', () => this.fitCamera());
-  }
-
-  private fitCamera(): void {
-    // Background speeds and star sizes stay in CSS pixels on dense displays.
-    const density = 1 / this.scale.zoom;
-    const { width, height } = this.scale;
-    this.cameras.main.setViewport(0, 0, width, height).setZoom(density).centerOn(width / density / 2, height / density / 2);
-    this.starfield.setSize(width / density, height / density);
+    this.scale.on('resize', (size: Phaser.Structs.Size) => this.starfield.setSize(size.width, size.height));
   }
 
   update(): void {

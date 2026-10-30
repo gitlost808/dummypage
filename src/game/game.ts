@@ -7,7 +7,6 @@ import PauseScene from './PauseScene';
 import { constants } from './constants';
 import { preferHighpShaders } from './utils/shader-precision';
 import { countOnlyPlayedTime } from './utils/play-clock';
-import { followDisplaySize } from './utils/display';
 
 // before the game boots, so it covers every shader Phaser compiles
 preferHighpShaders();
@@ -18,7 +17,8 @@ const config: Phaser.Types.Core.GameConfig = {
   parent: 'game',
   backgroundColor: '#060606',
   scale: {
-    mode: Phaser.Scale.NONE,
+    mode: Phaser.Scale.RESIZE,
+    autoCenter: Phaser.Scale.CENTER_BOTH,
     width: constants.width,
     height: constants.height,
   },
@@ -29,7 +29,6 @@ const config: Phaser.Types.Core.GameConfig = {
   input: {
     activePointers: 2,
   },
-  callbacks: { postBoot: followDisplaySize },
   // later scenes render on top
   scene: [BootScene, BackgroundScene, TitleScene, GameScene, PauseScene],
 };

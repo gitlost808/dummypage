@@ -5,7 +5,6 @@ import { powerUpKinds } from '../entities/PowerUp';
 import { enemyKinds } from '../entities/EnemyShip';
 import { Boss } from '../entities/Boss';
 import { glowTextureKey } from '../utils/glow';
-import { textureResolution } from '../utils/texture-resolution';
 
 const toHex = (color: number) => `#${color.toString(16).padStart(6, '0')}`;
 
@@ -59,7 +58,7 @@ export class Legend extends Phaser.GameObjects.Container {
     const glow = glowTextureKey(entry.texture);
     const icon = scene.add
       .image(margin + iconWidth / 2, y + height / 2, scene.textures.exists(glow) ? glow : entry.texture)
-      .setScale(Math.min(1 / textureResolution, iconWidth / hull.width, iconHeight / hull.height));
+      .setScale(Math.min(1, iconWidth / hull.width, iconHeight / hull.height));
 
     this.add([icon, name, description]);
     return height;
