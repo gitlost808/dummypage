@@ -3,6 +3,7 @@ import { EnemyShip, EnemyKind, EnemyBehavior, EnemyShot, enemyKinds } from '../e
 import { PlayerShip } from '../entities/PlayerShip';
 import { Boss } from '../entities/Boss';
 import { constants } from '../constants';
+import { spriteSizes } from '../utils/texture-resolution';
 
 type Range = [number, number];
 type Unlockable = { unlockAt: number; weight: Range };
@@ -191,7 +192,7 @@ export class EnemySpawner {
 
   // a row of normal enemies side by side, falling in step; returns false only if none could spawn
   private spawnFormation(difficulty: number): boolean {
-    const step = this.scene.textures.getFrame(enemyKinds.normal.texture).width + constants.formationGap;
+    const step = spriteSizes[enemyKinds.normal.texture].width + constants.formationGap;
     const rowWidth = step * (constants.formationSize - 1);
     const left = Phaser.Math.Between(spawnMargin(), constants.width - spawnMargin() - rowWidth);
     let spawned = false;

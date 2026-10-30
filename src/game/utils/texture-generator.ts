@@ -1,8 +1,9 @@
 import Phaser from 'phaser';
 import { constants } from '../constants';
 import { nebulaPixels } from './noise';
+import { generateGraphicsTexture } from './texture-resolution';
 
-// the boss hull's underside from left to right, and the cannons hanging below it, in texture pixels;
+// the boss hull's underside from left to right, and the cannons hanging below it, in playfield pixels;
 // the boss blocks the laser there (see Boss.undersideAt)
 export const bossUnderside: [number, number][] = [[1, 26], [32, 40], [46, 71], [66, 71], [80, 40], [111, 26]];
 export const bossCannons = [
@@ -13,32 +14,32 @@ export const bossCannons = [
 export function generateAllTextures(scene: Phaser.Scene): void {
   const gfx = scene.add.graphics();
 
-  // 32x32 is a power of two, so WebGL wraps these textures (REPEAT) and a full-width edge
+  // Ship textures are powers of two, so WebGL wraps them (REPEAT) and a full-width edge
   // bleeds onto the opposite one as a faint line (which the ship glow amplifies);
   // keep that edge 1px inside the texture
 
   // player
   gfx.fillStyle(constants.playerColor);
   gfx.fillTriangle(0, 31, 16, 0, 32, 31);
-  gfx.generateTexture('player', 32, 32);
+  generateGraphicsTexture(gfx, 'player');
   gfx.clear();
 
   // enemy
   gfx.fillStyle(constants.enemyColor);
   gfx.fillTriangle(32, 1, 16, 32, 0, 1);
-  gfx.generateTexture('enemy', 32, 32);
+  generateGraphicsTexture(gfx, 'enemy');
   gfx.clear();
 
   // projectile
   gfx.fillStyle(constants.projectileColor);
   gfx.fillRect(0, 0, 4, 12);
-  gfx.generateTexture('projectile', 4, 12);
+  generateGraphicsTexture(gfx, 'projectile');
   gfx.clear();
 
   // enemy projectile
   gfx.fillStyle(constants.enemyProjectileColor);
   gfx.fillRect(0, 0, 4, 12);
-  gfx.generateTexture('enemy-projectile', 4, 12);
+  generateGraphicsTexture(gfx, 'enemy-projectile');
   gfx.clear();
 
   // power-up: shield
@@ -53,7 +54,7 @@ export function generateAllTextures(scene: Phaser.Scene): void {
     ],
     true
   );
-  gfx.generateTexture('powerup-shield', 24, 24);
+  generateGraphicsTexture(gfx, 'powerup-shield');
   gfx.clear();
 
   // power-up: spread
@@ -61,21 +62,21 @@ export function generateAllTextures(scene: Phaser.Scene): void {
   gfx.lineBetween(12, 18, 12, 6);
   gfx.lineBetween(12, 18, 7, 8);
   gfx.lineBetween(12, 18, 17, 8);
-  gfx.generateTexture('powerup-spread', 24, 24);
+  generateGraphicsTexture(gfx, 'powerup-spread');
   gfx.clear();
 
   // power-up: laser, a ship firing one beam
   drawPowerUpRing(gfx, constants.laserColor);
   gfx.fillRect(11, 4, 2, 10);
   gfx.fillTriangle(7, 19, 12, 13, 17, 19);
-  gfx.generateTexture('powerup-laser', 24, 24);
+  generateGraphicsTexture(gfx, 'powerup-laser');
   gfx.clear();
 
   // power-up: bomb
   drawPowerUpRing(gfx, constants.bombColor);
   gfx.fillCircle(12, 13, 5);
   gfx.lineBetween(12, 8, 15, 5);
-  gfx.generateTexture('powerup-bomb', 24, 24);
+  generateGraphicsTexture(gfx, 'powerup-bomb');
   gfx.destroy();
 
   // star layers, one tileable texture each
@@ -123,7 +124,7 @@ export function generateAllTextures(scene: Phaser.Scene): void {
   enemyGfx.fillStyle(0x000000, 0.35);
   enemyGfx.fillRect(6, 8, 28, 4);
   enemyGfx.fillRect(10, 18, 20, 4);
-  enemyGfx.generateTexture('enemy-tank', 40, 36);
+  generateGraphicsTexture(enemyGfx, 'enemy-tank');
   enemyGfx.clear();
 
   // gunner: enemy shape with a targeting eye
@@ -131,13 +132,13 @@ export function generateAllTextures(scene: Phaser.Scene): void {
   enemyGfx.fillTriangle(32, 1, 16, 32, 0, 1);
   enemyGfx.fillStyle(0xffffff);
   enemyGfx.fillCircle(16, 9, 3);
-  enemyGfx.generateTexture('enemy-gunner', 32, 32);
+  generateGraphicsTexture(enemyGfx, 'enemy-gunner');
   enemyGfx.clear();
 
   // aimed enemy projectile: round, so it needs no rotation
   enemyGfx.fillStyle(constants.gunnerColor);
   enemyGfx.fillCircle(4, 4, 4);
-  enemyGfx.generateTexture('enemy-projectile-aimed', 8, 8);
+  generateGraphicsTexture(enemyGfx, 'enemy-projectile-aimed');
   enemyGfx.clear();
 
   // boss: a broad hull with swept wings, two cannons and a glowing core
@@ -154,7 +155,7 @@ export function generateAllTextures(scene: Phaser.Scene): void {
   enemyGfx.fillRect(30, 18, 52, 4);
   enemyGfx.fillStyle(0xffffff);
   enemyGfx.fillCircle(56, 40, 7);
-  enemyGfx.generateTexture('boss', 112, 72);
+  generateGraphicsTexture(enemyGfx, 'boss');
   enemyGfx.clear();
 
   // boss projectile: round with a bright centre, so it stands out from the gunner's
@@ -162,7 +163,7 @@ export function generateAllTextures(scene: Phaser.Scene): void {
   enemyGfx.fillCircle(5, 5, 5);
   enemyGfx.fillStyle(0xffffff);
   enemyGfx.fillCircle(5, 5, 2);
-  enemyGfx.generateTexture('boss-projectile', 10, 10);
+  generateGraphicsTexture(enemyGfx, 'boss-projectile');
   enemyGfx.destroy();
 }
 
