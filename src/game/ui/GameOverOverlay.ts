@@ -1,7 +1,6 @@
 import Phaser from 'phaser';
 import { constants } from '../constants';
-import { LeaderboardError, LeaderboardSession } from '../leaderboard/client';
-import { leaderboard } from '../leaderboard';
+import { LeaderboardError, LeaderboardRun } from '../leaderboard/client';
 import { openLeaderboardDialog } from '../leaderboard/dialogs';
 
 const toHex = (color: number) => `#${color.toString(16).padStart(6, '0')}`;
@@ -25,7 +24,7 @@ export class GameOverOverlay extends Phaser.GameObjects.Container {
     score: number,
     highScore: number,
     onRestart: () => Promise<void>,
-    session?: LeaderboardSession
+    run?: LeaderboardRun
   ) {
     super(scene, 0, 0);
     scene.add.existing(this);
@@ -70,9 +69,9 @@ export class GameOverOverlay extends Phaser.GameObjects.Container {
       fontSize: '18px', color: '#268bd2',
     }).setOrigin(0.5).setPadding(12).setInteractive({ useHandCursor: true });
     leaderboardButton.setPosition(constants.width / 2, constants.height / 2 + 190);
-    leaderboardButton.on('pointerdown', () => openLeaderboardDialog(scene, session?.session_id));
+    leaderboardButton.on('pointerdown', () => openLeaderboardDialog(scene, run?.session.session_id));
     scene.input.keyboard.on('keydown-L', (event: KeyboardEvent) => {
-      if (!event.repeat) openLeaderboardDialog(scene, session?.session_id);
+      if (!event.repeat) openLeaderboardDialog(scene, run?.session.session_id);
     });
 
     this.add([
@@ -126,14 +125,15 @@ export class GameOverOverlay extends Phaser.GameObjects.Container {
       }
     );
 
-    // One immutable result per run; retries use the same token and score, as required by the API.
+    // One immutable result per run; the run retries temporary failures itself, and the retry
+    // button sends the same score again, as required by the API.
     const save = async () => {
-      if (!session || this.saving || this.saveController.signal.aborted) return;
+      if (!run || this.saving || this.saveController.signal.aborted) return;
       this.saving = true;
       this.retryButton.setVisible(false);
       this.saveStatus.setText('Saving score…');
       try {
-        await leaderboard.finishRun(session, score, this.saveController.signal);
+        await run.finish(score, this.saveController.signal);
         if (!this.saveController.signal.aborted) this.saveStatus.setText('Score saved to leaderboard');
       } catch (error) {
         if (this.saveController.signal.aborted) return;
@@ -145,7 +145,7 @@ export class GameOverOverlay extends Phaser.GameObjects.Container {
     };
     this.retryButton.on('pointerdown', save);
     scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.saveController.abort());
-    if (session) void save();
+    if (run) void save();
     else this.saveStatus.setText('Offline run • personal best kept on this device');
   }
 

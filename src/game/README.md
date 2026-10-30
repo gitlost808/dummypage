@@ -29,14 +29,16 @@ after pool reuse. Check formation spacing and where the laser stops on the boss.
 The game uses [spacegame-backend](https://github.com/gitlost808/spacegame-backend)
 for shared scores. Before each run, choose a pilot name (1–32 characters); the
 browser remembers it for next time. A session is created before gameplay starts,
-and game over submits the final score with that run's private token. Tokens stay
-in memory. The existing personal high score remains in browser storage.
+the running score is checkpointed every 10 seconds (also while paused), and game
+over submits the final score with that run's private token. Tokens stay in
+memory. The existing personal high score remains in browser storage.
 
 Open **LEADERBOARD** on the title or game-over screen, or press **L**, to see the
-top 20 runs. The current run is highlighted if it appears in the results. Failed
-score submissions can be retried from game over when the failure is temporary.
-Retries send the same score and token and are idempotent on the backend. Starting
-another run or reloading discards an unsaved submission. **Play offline** skips
+top 20 runs. The current run is highlighted if it appears in the results. Temporary
+failures are retried automatically, and from game over once those retries run out.
+Retries send the same score and token and are idempotent on the backend. If the
+backend drops a run mid-flight, the HUD says so right away and the run doesn't
+count. Starting another run or reloading discards an unsaved submission. **Play offline** skips
 the backend and keeps the personal high score on this device.
 
 ### Local setup
@@ -68,17 +70,35 @@ are display names, not authenticated accounts.
 
 ### Score validation
 
-The frontend follows the backend's session contract: create a named session
-before gameplay, then submit only `{ "score": <integer> }` with that session's
-Bearer token at game over. The backend calculates duration from its own start
-and finish timestamps and checks:
+The frontend follows the backend's session contract (`LeaderboardRun` in
+`leaderboard/client.ts`):
+
+- Create a named session before gameplay.
+- Every 10 seconds, also while paused, `POST /sessions/:id/checkpoint` with
+  `{ "score": <total so far> }` and the session's Bearer token. A run with more
+  than 30 seconds between start, checkpoints and finish is rejected. Checkpoints
+  never overlap and their scores never go down. A failed or rate-limited
+  checkpoint is skipped and the next one tries again.
+- At game over, stop the checkpoints, wait for one still in flight, then
+  `POST /sessions/:id/finish` with the final score, which is at least the last
+  checkpoint. Temporary failures are retried with the same score, waiting for
+  `Retry-After` on 429.
+- `422 run rejected` (the run was deleted), 404 (gone) and 401 (bad token) end
+  the run: nothing more is sent and the player is told it doesn't count. A 409 on
+  a checkpoint means the run is already finished, so the checkpoints stop.
+
+The game pauses when its tab is hidden, but browsers slow background timers down
+(Chrome to once a minute after five minutes hidden), so a run left in the
+background for long can miss the 30-second window and be rejected.
+
+The backend calculates duration from its own start and finish timestamps and
+checks:
 
 ```text
 0 <= score <= elapsed_seconds * MAX_SCORE_PER_SECOND
 ```
 
-For the current game tuning and the backend's existing one-hour session limit,
-use these as conservative initial settings in the **backend deployment
+For the current game tuning and a one-hour session limit, use these as conservative initial settings in the **backend deployment
 configuration**:
 
 ```dotenv
@@ -115,8 +135,7 @@ increasingly permissive early and potentially too restrictive for longer runs.
 
 **Elapsed session time is not active play time.** Server duration includes
 pauses, time in the background, and delays before a successful finish request.
-The frontend's game clock excludes paused/background time. A one-hour session
-also expires after one hour of wall time, including pauses. These settings reject
+The frontend's game clock excludes paused/background time. These settings reject
 implausibly fast scores but cannot establish that someone actually played for
 that duration. A stricter active-play policy needs a backend protocol change;
 simply accepting a client-supplied duration does not make it authoritative.

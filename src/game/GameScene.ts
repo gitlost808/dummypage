@@ -24,7 +24,8 @@ import { BossHealthBar } from './ui/BossHealthBar';
 import { playMusic, playSound, randomDetune, stopMusic } from './utils/audio';
 import { fitPlayfieldCamera } from './utils/playfield';
 import { RunSetup, openRunDialog } from './leaderboard/dialogs';
-import { LeaderboardSession } from './leaderboard/client';
+import { LeaderboardRun, LeaderboardSession } from './leaderboard/client';
+import { leaderboard } from './leaderboard';
 
 export default class GameScene extends Phaser.Scene {
   private inputType!: CombinedInput;
@@ -51,6 +52,7 @@ export default class GameScene extends Phaser.Scene {
   private nextFireAt = 0;
   private nextLaserTickAt = 0;
   private leaderboardSession?: LeaderboardSession;
+  private leaderboardRun?: LeaderboardRun;
 
   constructor() {
     super('GameScene');
@@ -110,6 +112,7 @@ export default class GameScene extends Phaser.Scene {
       (points) => this.scoreSystem.addPoints(points)
     );
     this.effects = new EffectsSystem(this);
+    this.startLeaderboardRun();
     this.muteButton = new MuteButton(this);
     this.musicButton = new MusicButton(this);
     this.pauseButton = new PauseButton(this, () => this.pause());
@@ -198,7 +201,25 @@ export default class GameScene extends Phaser.Scene {
       this.game.events.off(Phaser.Core.Events.HIDDEN, autoPause);
       this.game.events.off(Phaser.Core.Events.BLUR, autoPause);
       this.events.off(Phaser.Scenes.Events.RESUME, this.onResume, this);
+      this.leaderboardRun?.stop();
     });
+  }
+
+  // checkpoint the score while the run lasts; restarting reuses this instance, so start fresh
+  private startLeaderboardRun(): void {
+    this.leaderboardRun = undefined;
+    if (!this.leaderboardSession) return;
+    const run = new LeaderboardRun(leaderboard, this.leaderboardSession, () => this.scoreSystem.getScore());
+    // the backend dropped the run: keep playing, but say right away that it won't count
+    run.onLost = () => {
+      if (this.isGameOver || this.leaderboardRun !== run) return;
+      this.add.text(10, 70, 'This run no longer counts for the leaderboard', {
+        fontSize: '14px',
+        color: '#dc322f',
+      });
+    };
+    run.start();
+    this.leaderboardRun = run;
   }
 
   // freeze the whole scene (physics, clock, tweens, updates) under the pause screen
@@ -400,7 +421,7 @@ export default class GameScene extends Phaser.Scene {
         const setup = await openRunDialog(this);
         if (setup && this.scene.isActive()) this.scene.restart(setup);
       },
-      this.leaderboardSession
+      this.leaderboardRun
     );
   }
 }
