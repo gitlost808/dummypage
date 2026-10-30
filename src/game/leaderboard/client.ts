@@ -35,10 +35,18 @@ export class LeaderboardError extends Error {
   }
 }
 
+// The name itself was refused, locally or by the server: a retry with the same name fails again.
+export class PlayerNameError extends LeaderboardError {
+  constructor(message: string, status: number) {
+    super(message, status);
+    this.name = 'PlayerNameError';
+  }
+}
+
 export function validatePlayerName(value: string): string {
   const name = value.trim();
   if (!name || Array.from(name).length > 32 || /[\u0000-\u001f\u007f-\u009f]/u.test(name)) {
-    throw new LeaderboardError('Enter a pilot name of 1–32 characters without control characters.', 400);
+    throw new PlayerNameError('Enter a pilot name of 1–32 characters without control characters.', 400);
   }
   return name;
 }
@@ -59,7 +67,7 @@ function parseRetryAfter(value: string | null): number | undefined {
 
 function errorMessage(status: number): string {
   switch (status) {
-    case 400: return 'The name or score was not accepted.';
+    case 400: return 'The score was not accepted.';
     case 401: return 'This run could not be authenticated.';
     case 404: return 'The leaderboard or run could not be found.';
     case 409: return 'This run already has a different final score.';
@@ -79,10 +87,18 @@ export class LeaderboardClient {
   }
 
   async startRun(playerName: string, signal?: AbortSignal): Promise<LeaderboardSession> {
-    const session = await this.request<LeaderboardSession>('/sessions', {
-      method: 'POST',
-      body: JSON.stringify({ player_name: validatePlayerName(playerName) }),
-    }, signal);
+    const body = JSON.stringify({ player_name: validatePlayerName(playerName) });
+    let session: LeaderboardSession;
+    try {
+      session = await this.request<LeaderboardSession>('/sessions', { method: 'POST', body }, signal);
+    } catch (error) {
+      // The name is the only input here, so a rejected request means the server (format checks or
+      // moderation) refused the name. 422 is accepted too, for policy rejections of well-formed names.
+      if (error instanceof LeaderboardError && (error.status === 400 || error.status === 422)) {
+        throw new PlayerNameError('That pilot name was not accepted. Choose a different name.', error.status);
+      }
+      throw error;
+    }
     if (!session || typeof session.session_id !== 'string' || !session.session_id ||
         typeof session.session_token !== 'string' || !session.session_token ||
         typeof session.player_name !== 'string') {
