@@ -4,6 +4,7 @@ import {
   LeaderboardClient,
   LeaderboardError,
   LeaderboardRun,
+  PlayerNameError,
   validatePlayerName,
 } from '../src/game/leaderboard/client.ts';
 
@@ -74,7 +75,47 @@ test('names follow the backend Unicode length and control-character rules', () =
   assert.equal(validatePlayerName('  Ada Lovelace  '), 'Ada Lovelace');
   assert.equal(validatePlayerName('🚀'.repeat(32)), '🚀'.repeat(32));
   for (const name of ['', '   ', '🚀'.repeat(33), 'Pilot\u0000', 'Pi\tlot', 'Pi\u0085lot']) {
-    assert.throws(() => validatePlayerName(name), LeaderboardError);
+    assert.throws(() => validatePlayerName(name), PlayerNameError);
+  }
+});
+
+test('names the backend refuses are reported as name rejections, not retryable failures', async t => {
+  for (const status of [400, 422]) {
+    await t.test(String(status), async t => {
+      t.mock.method(globalThis, 'fetch', async () => json({ error: 'player_name is not allowed' }, status));
+      await assert.rejects(new LeaderboardClient('').startRun('Pilot'), error => {
+        assert.ok(error instanceof PlayerNameError);
+        assert.ok(error instanceof LeaderboardError);
+        assert.equal(error.status, status);
+        assert.equal(error.retryable, false);
+        // Server details are untrusted and not shown; the client supplies its own message.
+        assert.doesNotMatch(error.message, /not allowed/);
+        return true;
+      });
+    });
+  }
+});
+
+test('other run start failures and rejected scores are not name rejections', async t => {
+  for (const status of [429, 503]) {
+    await t.test(`start ${status}`, async t => {
+      t.mock.method(globalThis, 'fetch', async () => json({ error: 'server detail' }, status));
+      await assert.rejects(new LeaderboardClient('').startRun('Pilot'), error => {
+        assert.ok(error instanceof LeaderboardError);
+        assert.ok(!(error instanceof PlayerNameError));
+        assert.equal(error.retryable, true);
+        return true;
+      });
+    });
+  }
+  for (const status of [400, 422]) {
+    await t.test(`finish ${status}`, async t => {
+      t.mock.method(globalThis, 'fetch', async () => json({ error: 'server detail' }, status));
+      await assert.rejects(new LeaderboardClient('').finishRun(session, 1000), error => {
+        assert.ok(!(error instanceof PlayerNameError));
+        return true;
+      });
+    });
   }
 });
 

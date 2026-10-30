@@ -68,6 +68,16 @@ be running. The PWA does not cache API requests.
 The backend ranks individual runs; a pilot name can occur more than once. Names
 are display names, not authenticated accounts.
 
+### Name rejection
+
+The backend may refuse a pilot name, either for its format or by moderation. To
+refuse one, `POST /api/v1/sessions` should respond with **400** or **422** (422 suits
+well-formed names that a policy forbids). The response body's `error` text is not
+shown to players. The run dialog then asks for a different name, keeping
+**Play offline** available. A refused name is not remembered, and if it was the
+stored name it is cleared, so names that newly fail moderation are not prefilled
+again. Other failures (429, 5xx, network) keep the name and offer a retry.
+
 ### Score validation
 
 The frontend follows the backend's session contract (`LeaderboardRun` in

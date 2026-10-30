@@ -1,5 +1,5 @@
 import type Phaser from 'phaser';
-import { LeaderboardSession, validatePlayerName } from './client';
+import { LeaderboardSession, PlayerNameError, validatePlayerName } from './client';
 import { leaderboard } from './index';
 
 const playerNameKey = 'galactic-skirmish:playerName';
@@ -17,6 +17,15 @@ function rememberPlayerName(name: string): void {
     localStorage.setItem(playerNameKey, name);
   } catch {
     // Playing still works when browser storage is unavailable.
+  }
+}
+
+// A remembered name can be rejected later (e.g. by new moderation rules); don't prefill it again.
+function forgetPlayerName(name: string): void {
+  try {
+    if (localStorage.getItem(playerNameKey) === name) localStorage.removeItem(playerNameKey);
+  } catch {
+    // Nothing to forget when browser storage is unavailable.
   }
 }
 
@@ -117,6 +126,14 @@ export function openRunDialog(scene: Phaser.Scene): Promise<RunSetup | null> {
     form.append(label, hint, status, actions);
     dialog.element.append(form);
 
+    const rejectName = (message: string) => {
+      status.textContent = message;
+      name.setAttribute('aria-invalid', 'true');
+      name.focus();
+      name.select();
+    };
+    name.addEventListener('input', () => name.removeAttribute('aria-invalid'));
+
     form.addEventListener('submit', async event => {
       event.preventDefault();
       if (starting) return;
@@ -124,22 +141,30 @@ export function openRunDialog(scene: Phaser.Scene): Promise<RunSetup | null> {
       try {
         playerName = validatePlayerName(name.value);
       } catch (error) {
-        status.textContent = error.message;
-        name.focus();
+        rejectName(error.message);
         return;
       }
-      rememberPlayerName(playerName);
       starting = true;
       start.disabled = offline.disabled = name.disabled = true;
       status.textContent = 'Starting your run…';
       try {
         const session = await leaderboard.startRun(playerName, dialog.controller.signal);
         if (dialog.controller.signal.aborted) return;
+        rememberPlayerName(playerName);
         result = { session };
         dialog.close();
       } catch (error) {
         if (dialog.controller.signal.aborted) return;
-        status.textContent = `${error.message} You can retry or play offline.`;
+        if (error instanceof PlayerNameError) {
+          forgetPlayerName(playerName);
+          // The disabled input can't take focus; re-enable it before moving focus there.
+          name.disabled = false;
+          rejectName(`${error.message} You can also play offline.`);
+        } else {
+          // The name wasn't refused, only the request failed: keep it for the next attempt.
+          rememberPlayerName(playerName);
+          status.textContent = `${error.message} You can retry or play offline.`;
+        }
       } finally {
         starting = false;
         start.disabled = offline.disabled = name.disabled = false;
