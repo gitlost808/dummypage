@@ -23,7 +23,6 @@ export class Starfield {
     const sprite = this.scene.add
       .tileSprite(0, 0, width, height, texture)
       .setOrigin(0)
-      .setScrollFactor(0)
       .setTileScale(tileScale);
     this.layers.push({ sprite, speed });
   }

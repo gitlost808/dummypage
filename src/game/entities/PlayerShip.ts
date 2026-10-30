@@ -66,7 +66,8 @@ export class PlayerShip extends Ship {
     if (!this.motionBlur) return;
     this.motionBlur.active = speed > 0;
     // touch can outrun the keys, so cap the smear at full key speed
-    this.motionBlur.x = Math.min(speed / this.speed, 1) * constants.playerMotionBlur;
+    // Internal filter offsets use source pixels, before the sprite's scale.
+    this.motionBlur.x = Math.min(speed / this.speed, 1) * constants.playerMotionBlur / Math.abs(this.scaleX);
   }
 
   get shieldLayers(): number {

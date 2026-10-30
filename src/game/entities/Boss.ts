@@ -79,8 +79,8 @@ export class Boss extends Ship {
 
   // the world y of the hull's underside (or a cannon's muzzle) at world x, undefined where x misses the hull
   public undersideAt(x: number): number | undefined {
-    const tx = x - this.x + this.width * this.originX;
-    const top = this.y - this.height * this.originY;
+    const tx = x - this.x + this.displayWidth * this.originX;
+    const top = this.y - this.displayHeight * this.originY;
     const cannon = bossCannons.find(({ left, right }) => tx >= left && tx <= right);
     if (cannon) return top + cannon.bottom;
     for (let i = 1; i < bossUnderside.length; i++) {
@@ -196,10 +196,7 @@ export class Boss extends Ship {
     const y = this.y + this.displayHeight * 0.3;
     const bullet = this.projectilePool.get(this.x, y) as EnemyProjectile;
     if (!bullet) return;
-    // pooled bullets keep their last texture, so always set it (and the body size)
-    bullet.setTexture('boss-projectile');
-    (bullet.body as Phaser.Physics.Arcade.Body).setSize();
-    bullet.reset(this.x, y, Math.cos(angle) * speed, Math.sin(angle) * speed);
+    bullet.reset(this.x, y, Math.cos(angle) * speed, Math.sin(angle) * speed, 'boss-projectile');
     playSound(this.scene, 'enemy-shoot', randomDetune());
   }
 
