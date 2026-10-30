@@ -18,7 +18,8 @@
     "start": "parcel",
     "clean": "rm -rf dist",
     "build": "parcel build",
-    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.worker.json"
+    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.worker.json",
+    "test:leaderboard": "node --test tests/leaderboard.test.mjs"
   },
   "source": [
     "src/index.pug",

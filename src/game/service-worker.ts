@@ -18,6 +18,8 @@ async function activate() {
 self.addEventListener("activate", e => e.waitUntil(activate()));
 
 self.addEventListener('fetch', (event: FetchEvent) => {
+  // Session tokens and live scores must always go to the network, even in the installed PWA.
+  if (event.request.method !== 'GET' || new URL(event.request.url).pathname.includes('/api/v1/')) return;
   event.respondWith(
     caches.match(event.request).then(cached => cached || fetch(event.request))
   );

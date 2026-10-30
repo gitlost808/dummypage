@@ -23,6 +23,8 @@ import { WaveBanner } from './ui/WaveBanner';
 import { BossHealthBar } from './ui/BossHealthBar';
 import { playMusic, playSound, randomDetune, stopMusic } from './utils/audio';
 import { fitPlayfieldCamera } from './utils/playfield';
+import { RunSetup, openRunDialog } from './leaderboard/dialogs';
+import { LeaderboardSession } from './leaderboard/client';
 
 export default class GameScene extends Phaser.Scene {
   private inputType!: CombinedInput;
@@ -48,9 +50,14 @@ export default class GameScene extends Phaser.Scene {
   private isGameOver = false;
   private nextFireAt = 0;
   private nextLaserTickAt = 0;
+  private leaderboardSession?: LeaderboardSession;
 
   constructor() {
     super('GameScene');
+  }
+
+  init(data: RunSetup): void {
+    this.leaderboardSession = data?.session;
   }
 
   create(): void {
@@ -385,7 +392,11 @@ export default class GameScene extends Phaser.Scene {
       this,
       this.scoreSystem.getScore(),
       this.registry.get('highScore') ?? 0,
-      () => this.scene.restart()
+      async () => {
+        const setup = await openRunDialog(this);
+        if (setup && this.scene.isActive()) this.scene.restart(setup);
+      },
+      this.leaderboardSession
     );
   }
 }
