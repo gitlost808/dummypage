@@ -38,13 +38,17 @@ export class PowerUpSystem {
   public maybeDrop(x: number, y: number): void {
     if (Math.random() >= scale(constants.powerUpDropChance, this.getDifficulty())) return;
     const type = this.pickType();
-    // shields thin out as they stack, so spare layers stay rare; the other odds don't change
+    // shields thin out as they stack, so spare layers stay rare, and stop once the shield is full;
+    // the other odds don't change
     const skipChance = this.player.shieldLayers * constants.shieldDropFalloffPerLayer;
-    if (type === 'shield' && Math.random() < skipChance) return;
+    if (type === 'shield' && (this.player.shieldFull || Math.random() < skipChance)) return;
     this.powerUps.add(new PowerUp(this.scene, x, y, type));
   }
 
-  public drop(x: number, y: number, type = this.pickType()): void {
+  // a guaranteed drop: a random one never rolls a shield the player can't use, and a requested
+  // shield is skipped when the shield is already full
+  public drop(x: number, y: number, type = this.pickType(this.player.shieldFull)): void {
+    if (type === 'shield' && this.player.shieldFull) return;
     this.powerUps.add(new PowerUp(this.scene, x, y, type));
   }
 
@@ -103,8 +107,10 @@ export class PowerUpSystem {
     });
   }
 
-  private pickType(): PowerUpType {
-    const weights = Object.entries(constants.powerUpWeights) as [PowerUpType, number][];
+  private pickType(withoutShield = false): PowerUpType {
+    const weights = (Object.entries(constants.powerUpWeights) as [PowerUpType, number][]).filter(
+      ([type]) => !(withoutShield && type === 'shield')
+    );
     let roll = Math.random() * weights.reduce((total, [, weight]) => total + weight, 0);
     for (const [type, weight] of weights) {
       roll -= weight;

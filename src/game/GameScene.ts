@@ -358,7 +358,8 @@ export default class GameScene extends Phaser.Scene {
     this.effects.shake(constants.bombShakeMs, constants.bombShakeIntensity);
     playSound(this, 'big-explosion');
     playMusic(this, 'main', true);
-    // always a shield: a bomb would go off on an empty screen, and a spread would run out during the break
+    // always a shield: a bomb would go off on an empty screen, and a spread would run out during the
+    // break. Nothing drops if the shield is already full
     this.powerUps.drop(x, y, 'shield');
     this.scoreSystem.addPoints(this.boss.points);
   }
