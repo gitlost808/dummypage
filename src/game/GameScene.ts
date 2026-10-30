@@ -371,6 +371,8 @@ export default class GameScene extends Phaser.Scene {
     // freeze the action: physics, plus the clock driving spawns, firing and score
     this.physics.pause();
     this.time.paused = true;
+    // Group updates keep running when physics and timers pause, letting divers sound warnings.
+    this.enemySpawner.getGroup().runChildUpdate = false;
 
     // blow up the player; particles and camera effects keep running while paused
     this.player.setVisible(false);
