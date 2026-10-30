@@ -154,6 +154,8 @@ export const constants = {
   shieldAspect: 0.8,
   // each layer held makes a shield drop this much likelier to be skipped (1/3: 1 in 3 at one layer, none at three)
   shieldDropFalloffPerLayer: 1 / 3,
+  // picking up a shield with every layer already up scores this instead
+  shieldOverflowPoints: 100,
   // bright line along the middle of the rim, and the reach of the rim's glow (px)
   shieldCoreColor: 0xb8f0e8,
   shieldGlowBlur: 8,

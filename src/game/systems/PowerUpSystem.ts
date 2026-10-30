@@ -14,15 +14,23 @@ export class PowerUpSystem {
   // a countdown line under the score for each timed power-up that's running
   private statusTexts: Record<TimedPowerUp, Phaser.GameObjects.Text>;
   private onBomb: () => void;
+  private onPoints: (points: number) => void;
   private getDifficulty: () => number;
 
   private endsAt: Record<TimedPowerUp, number> = { spread: 0, laser: 0 };
 
-  constructor(scene: Phaser.Scene, player: PlayerShip, getDifficulty: () => number, onBomb: () => void) {
+  constructor(
+    scene: Phaser.Scene,
+    player: PlayerShip,
+    getDifficulty: () => number,
+    onBomb: () => void,
+    onPoints: (points: number) => void
+  ) {
     this.scene = scene;
     this.player = player;
     this.getDifficulty = getDifficulty;
     this.onBomb = onBomb;
+    this.onPoints = onPoints;
 
     this.powerUps = scene.physics.add.group({ runChildUpdate: true });
 
@@ -38,13 +46,16 @@ export class PowerUpSystem {
   public maybeDrop(x: number, y: number): void {
     if (Math.random() >= scale(constants.powerUpDropChance, this.getDifficulty())) return;
     const type = this.pickType();
-    // shields thin out as they stack, so spare layers stay rare; the other odds don't change
+    // shields thin out as they stack, so spare layers stay rare, and stop once the shield is full;
+    // the other odds don't change
     const skipChance = this.player.shieldLayers * constants.shieldDropFalloffPerLayer;
-    if (type === 'shield' && Math.random() < skipChance) return;
+    if (type === 'shield' && (this.player.shieldFull || Math.random() < skipChance)) return;
     this.powerUps.add(new PowerUp(this.scene, x, y, type));
   }
 
-  public drop(x: number, y: number, type = this.pickType()): void {
+  // a guaranteed drop; once the shield is full a random one leaves shields out, as anything else is
+  // worth more than a spare shield's points
+  public drop(x: number, y: number, type = this.pickType(this.player.shieldFull)): void {
     this.powerUps.add(new PowerUp(this.scene, x, y, type));
   }
 
@@ -72,9 +83,13 @@ export class PowerUpSystem {
     let label = type.toUpperCase();
     switch (type) {
       case 'shield':
-        label = this.player.addShieldLayer()
-          ? `${label} ${this.player.shieldLayers}/${constants.shieldMaxLayers}`
-          : `${label} MAX`;
+        if (this.player.addShieldLayer()) {
+          label = `${label} ${this.player.shieldLayers}/${constants.shieldMaxLayers}`;
+        } else {
+          // a spare shield turns into points
+          this.onPoints(constants.shieldOverflowPoints);
+          label = `+${constants.shieldOverflowPoints}`;
+        }
         break;
       case 'spread':
         this.endsAt.spread = this.scene.time.now + constants.spreadDurationMs;
@@ -103,8 +118,10 @@ export class PowerUpSystem {
     });
   }
 
-  private pickType(): PowerUpType {
-    const weights = Object.entries(constants.powerUpWeights) as [PowerUpType, number][];
+  private pickType(withoutShield = false): PowerUpType {
+    const weights = (Object.entries(constants.powerUpWeights) as [PowerUpType, number][]).filter(
+      ([type]) => !(withoutShield && type === 'shield')
+    );
     let roll = Math.random() * weights.reduce((total, [, weight]) => total + weight, 0);
     for (const [type, weight] of weights) {
       roll -= weight;

@@ -73,6 +73,10 @@ export class PlayerShip extends Ship {
     return this.shield.count;
   }
 
+  get shieldFull(): boolean {
+    return this.shield.count >= constants.shieldMaxLayers;
+  }
+
   // returns false if the shield is already at full strength
   addShieldLayer(): boolean {
     return this.shield.add(this.x, this.y);
