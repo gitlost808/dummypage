@@ -11,3 +11,124 @@ canvas {
     display: block;
   }
 }
+
+.game-dialog {
+  box-sizing: border-box;
+  width: min(480px, calc(100vw - 24px));
+  max-height: calc(100dvh - 32px);
+  padding: 22px;
+  border: 1px solid #268bd2;
+  border-radius: 12px;
+  background: #060c12;
+  color: #eeeeee;
+  font: 16px 'Kode Mono', monospace;
+  overflow: auto;
+  box-shadow: 0 0 28px #268bd233;
+
+  &::backdrop {
+    background: #000b;
+  }
+
+  header, .game-dialog-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  h2 {
+    margin: 0;
+    color: #268bd2;
+    font-size: 24px;
+  }
+
+  p {
+    font-size: 14px;
+    line-height: 1.6;
+    color: #cccccc;
+  }
+
+  label {
+    display: block;
+    margin-top: 24px;
+  }
+
+  input {
+    box-sizing: border-box;
+    width: 100%;
+    margin-top: 10px;
+    padding: 12px;
+    border: 1px solid #666;
+    border-radius: 4px;
+    background: #101820;
+    color: #fff;
+    font: inherit;
+  }
+
+  button {
+    min-height: 44px;
+    padding: 8px 12px;
+    border: 1px solid #268bd2;
+    border-radius: 4px;
+    background: transparent;
+    color: #eee;
+    font: inherit;
+    cursor: pointer;
+
+    &:hover {
+      background: #268bd222;
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: wait;
+    }
+  }
+
+  :focus-visible {
+    outline: 2px solid #859900;
+    outline-offset: 3px;
+  }
+
+  .game-dialog-status {
+    min-height: 1.6em;
+  }
+
+  table {
+    width: 100%;
+    margin-bottom: 20px;
+    border-collapse: collapse;
+    table-layout: fixed;
+    font-size: 14px;
+  }
+
+  th, td {
+    padding: 12px 4px;
+    border-bottom: 1px solid #268bd233;
+    text-align: left;
+    overflow-wrap: anywhere;
+
+    &:first-child {
+      width: 42px;
+    }
+
+    &:last-child {
+      width: 90px;
+      text-align: right;
+    }
+  }
+
+  .game-dialog-current-run {
+    color: #b5ca35;
+    background: #85990018;
+  }
+
+  .game-dialog-caption {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+}

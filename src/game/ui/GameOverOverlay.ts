@@ -1,5 +1,8 @@
 import Phaser from 'phaser';
 import { constants } from '../constants';
+import { LeaderboardError, LeaderboardSession } from '../leaderboard/client';
+import { leaderboard } from '../leaderboard';
+import { openLeaderboardDialog } from '../leaderboard/dialogs';
 
 const toHex = (color: number) => `#${color.toString(16).padStart(6, '0')}`;
 
@@ -9,6 +12,10 @@ export class GameOverOverlay extends Phaser.GameObjects.Container {
   private scoreText: Phaser.GameObjects.Text;
   private highScoreText: Phaser.GameObjects.Text;
   private prompt: Phaser.GameObjects.Text;
+  private saveStatus: Phaser.GameObjects.Text;
+  private retryButton: Phaser.GameObjects.Text;
+  private readonly saveController = new AbortController();
+  private saving = false;
 
   private readyAt: number;
   private restarting = false;
@@ -17,7 +24,8 @@ export class GameOverOverlay extends Phaser.GameObjects.Container {
     scene: Phaser.Scene,
     score: number,
     highScore: number,
-    onRestart: () => void
+    onRestart: () => Promise<void>,
+    session?: LeaderboardSession
   ) {
     super(scene, 0, 0);
     scene.add.existing(this);
@@ -49,12 +57,33 @@ export class GameOverOverlay extends Phaser.GameObjects.Container {
       .setOrigin(0.5)
       .setAlpha(0);
 
+    this.saveStatus = scene.add.text(0, 0, '', {
+      fontSize: '15px',
+      color: '#cccccc',
+      align: 'center',
+      wordWrap: { width: constants.width - 70 },
+    }).setOrigin(0.5);
+    this.retryButton = scene.add.text(0, 0, 'RETRY SAVE', {
+      fontSize: '16px', color: '#859900',
+    }).setOrigin(0.5).setPadding(10).setInteractive({ useHandCursor: true }).setVisible(false);
+    const leaderboardButton = scene.add.text(0, 0, 'LEADERBOARD (L)', {
+      fontSize: '18px', color: '#268bd2',
+    }).setOrigin(0.5).setPadding(12).setInteractive({ useHandCursor: true });
+    leaderboardButton.setPosition(constants.width / 2, constants.height / 2 + 190);
+    leaderboardButton.on('pointerdown', () => openLeaderboardDialog(scene, session?.session_id));
+    scene.input.keyboard.on('keydown-L', (event: KeyboardEvent) => {
+      if (!event.repeat) openLeaderboardDialog(scene, session?.session_id);
+    });
+
     this.add([
       this.backdrop,
       this.title,
       this.scoreText,
       this.highScoreText,
       this.prompt,
+      this.saveStatus,
+      this.retryButton,
+      leaderboardButton,
     ]);
     this.layout();
     const camera = scene.cameras.main;
@@ -73,10 +102,14 @@ export class GameOverOverlay extends Phaser.GameObjects.Container {
       duration: 300,
     });
 
-    const restart = () => {
+    const restart = async () => {
       if (this.restarting || this.scene.time.now < this.readyAt) return;
       this.restarting = true;
-      onRestart();
+      try {
+        await onRestart();
+      } finally {
+        this.restarting = false;
+      }
     };
     // require a fresh press: a fire key held through death auto-repeats keydown,
     // and a finger still held down never emits another pointerdown
@@ -92,6 +125,28 @@ export class GameOverOverlay extends Phaser.GameObjects.Container {
         if (currentlyOver.length === 0) restart();
       }
     );
+
+    // One immutable result per run; retries use the same token and score, as required by the API.
+    const save = async () => {
+      if (!session || this.saving || this.saveController.signal.aborted) return;
+      this.saving = true;
+      this.retryButton.setVisible(false);
+      this.saveStatus.setText('Saving score…');
+      try {
+        await leaderboard.finishRun(session, score, this.saveController.signal);
+        if (!this.saveController.signal.aborted) this.saveStatus.setText('Score saved to leaderboard');
+      } catch (error) {
+        if (this.saveController.signal.aborted) return;
+        this.saveStatus.setText(error.message);
+        this.retryButton.setVisible(error instanceof LeaderboardError && error.retryable);
+      } finally {
+        this.saving = false;
+      }
+    };
+    this.retryButton.on('pointerdown', save);
+    scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.saveController.abort());
+    if (session) void save();
+    else this.saveStatus.setText('Offline run • personal best kept on this device');
   }
 
   // cover the whole window, not just the playfield, so the bars around it on tall or wide screens
@@ -108,9 +163,11 @@ export class GameOverOverlay extends Phaser.GameObjects.Container {
   private layout(): void {
     const cx = constants.width / 2;
     const cy = constants.height / 2;
-    this.title.setPosition(cx, cy - 70);
-    this.scoreText.setPosition(cx, cy - 10);
-    this.highScoreText.setPosition(cx, cy + 25);
-    this.prompt.setPosition(cx, cy + 80);
+    this.title.setPosition(cx, cy - 110);
+    this.scoreText.setPosition(cx, cy - 50);
+    this.highScoreText.setPosition(cx, cy - 15);
+    this.saveStatus.setPosition(cx, cy + 45);
+    this.retryButton.setPosition(cx, cy + 105);
+    this.prompt.setPosition(cx, cy + 145);
   }
 }
