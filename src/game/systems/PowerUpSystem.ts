@@ -14,15 +14,23 @@ export class PowerUpSystem {
   // a countdown line under the score for each timed power-up that's running
   private statusTexts: Record<TimedPowerUp, Phaser.GameObjects.Text>;
   private onBomb: () => void;
+  private onPoints: (points: number) => void;
   private getDifficulty: () => number;
 
   private endsAt: Record<TimedPowerUp, number> = { spread: 0, laser: 0 };
 
-  constructor(scene: Phaser.Scene, player: PlayerShip, getDifficulty: () => number, onBomb: () => void) {
+  constructor(
+    scene: Phaser.Scene,
+    player: PlayerShip,
+    getDifficulty: () => number,
+    onBomb: () => void,
+    onPoints: (points: number) => void
+  ) {
     this.scene = scene;
     this.player = player;
     this.getDifficulty = getDifficulty;
     this.onBomb = onBomb;
+    this.onPoints = onPoints;
 
     this.powerUps = scene.physics.add.group({ runChildUpdate: true });
 
@@ -45,10 +53,9 @@ export class PowerUpSystem {
     this.powerUps.add(new PowerUp(this.scene, x, y, type));
   }
 
-  // a guaranteed drop: a random one never rolls a shield the player can't use, and a requested
-  // shield is skipped when the shield is already full
+  // a guaranteed drop; once the shield is full a random one leaves shields out, as anything else is
+  // worth more than a spare shield's points
   public drop(x: number, y: number, type = this.pickType(this.player.shieldFull)): void {
-    if (type === 'shield' && this.player.shieldFull) return;
     this.powerUps.add(new PowerUp(this.scene, x, y, type));
   }
 
@@ -76,9 +83,13 @@ export class PowerUpSystem {
     let label = type.toUpperCase();
     switch (type) {
       case 'shield':
-        label = this.player.addShieldLayer()
-          ? `${label} ${this.player.shieldLayers}/${constants.shieldMaxLayers}`
-          : `${label} MAX`;
+        if (this.player.addShieldLayer()) {
+          label = `${label} ${this.player.shieldLayers}/${constants.shieldMaxLayers}`;
+        } else {
+          // a spare shield turns into points
+          this.onPoints(constants.shieldOverflowPoints);
+          label = `+${constants.shieldOverflowPoints}`;
+        }
         break;
       case 'spread':
         this.endsAt.spread = this.scene.time.now + constants.spreadDurationMs;

@@ -106,7 +106,8 @@ export default class GameScene extends Phaser.Scene {
       this,
       this.player,
       () => this.enemySpawner.getDifficulty(),
-      () => this.detonateBomb()
+      () => this.detonateBomb(),
+      (points) => this.scoreSystem.addPoints(points)
     );
     this.effects = new EffectsSystem(this);
     this.muteButton = new MuteButton(this);
@@ -359,7 +360,7 @@ export default class GameScene extends Phaser.Scene {
     playSound(this, 'big-explosion');
     playMusic(this, 'main', true);
     // always a shield: a bomb would go off on an empty screen, and a spread would run out during the
-    // break. Nothing drops if the shield is already full
+    // break. With the shield full it's worth points instead
     this.powerUps.drop(x, y, 'shield');
     this.scoreSystem.addPoints(this.boss.points);
   }
