@@ -92,10 +92,10 @@ export class PowerUpSystem {
         }
         break;
       case 'spread':
-        this.endsAt.spread = this.scene.time.now + constants.spreadDurationMs;
+        this.extend('spread', constants.spreadDurationMs);
         break;
       case 'laser':
-        this.endsAt.laser = this.scene.time.now + constants.laserDurationMs;
+        this.extend('laser', constants.laserDurationMs);
         break;
       case 'bomb':
         this.onBomb();
@@ -103,6 +103,11 @@ export class PowerUpSystem {
     }
 
     this.showLabel(x, y, label, powerUpKinds[type].color);
+  }
+
+  // another pickup adds its time to whatever is left rather than restarting the countdown
+  private extend(type: TimedPowerUp, durationMs: number): void {
+    this.endsAt[type] = Math.max(this.endsAt[type], this.scene.time.now) + durationMs;
   }
 
   private showLabel(x: number, y: number, text: string, color: number): void {
