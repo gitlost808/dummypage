@@ -3,16 +3,21 @@ import { Ship } from './Ship';
 import { InputController } from '../input/InputController';
 import { constants } from '../constants';
 import { Shield } from './Shield';
+import { bankFrame, bankTextureKey, easeBank, levelBankFrame } from '../utils/banking';
 
 export class PlayerShip extends Ship {
   private inputController: InputController;
   private shield: Shield;
   private invulnerableUntil = 0;
   private motionBlur?: Phaser.Filters.Blur;
+  // -1 banked fully left, 1 fully right
+  private bank = 0;
 
   constructor(scene: Phaser.Scene, x: number, y: number, input: InputController) {
     super(scene, x, y, 'player', constants.playerSpeed);
     this.inputController = input;
+    // the same frame size as the flat texture, so the scale and hitbox set up by Ship still fit
+    this.setTexture(bankTextureKey('player'), levelBankFrame);
     this.shield = new Shield(scene);
     this.setDragX(constants.playerDrag);
     this.addGlow(constants.playerColor);
@@ -23,18 +28,26 @@ export class PlayerShip extends Ship {
 
   update(): void {
     this.inputController.update();
-    const speed = this.inputController.dragging ? this.followFinger() : this.steer();
-    this.updateMotionBlur(speed);
+    const vx = this.inputController.dragging ? this.followFinger() : this.steer();
+    this.updateMotionBlur(Math.abs(vx));
+    this.updateBank(vx);
 
     this.shield.update(this.x, this.y);
   }
 
-  // keys: full speed while one is held; returns the speed for the motion blur
+  // keys: full speed while one is held; returns the sideways velocity for the motion blur and banking
   private steer(): number {
     if (this.inputController.left) this.setVelocityX(-this.speed);
     else if (this.inputController.right) this.setVelocityX(this.speed);
     else this.setVelocityX(0);
-    return Math.abs((this.body as Phaser.Physics.Arcade.Body).velocity.x);
+    return (this.body as Phaser.Physics.Arcade.Body).velocity.x;
+  }
+
+  // roll into the movement; touch can outrun the keys, so it banks fully from key speed up
+  private updateBank(vx: number): void {
+    const dt = this.scene.game.loop.delta / 1000;
+    this.bank = easeBank(this.bank, vx / this.speed, dt);
+    this.setFrame(bankFrame(this.bank), false, false);
   }
 
   // touch: chase the finger's x, easing in as the gap closes and never faster than
@@ -58,7 +71,7 @@ export class PlayerShip extends Ship {
     const maxStep = constants.touchFollowMaxSpeed * dt;
     const step = Phaser.Math.Clamp(eased, -maxStep, maxStep);
     this.x += step;
-    return Math.abs(step) / dt;
+    return step / dt;
   }
 
   // blur sideways in proportion to speed; skip the pass entirely when standing still

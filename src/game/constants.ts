@@ -324,4 +324,15 @@ export const constants = {
   shipGlowScale: 4,
   // horizontal blur offset at full player speed
   playerMotionBlur: 2,
+  // banking: hulls roll into sideways movement, using pre-drawn frames from banked left to banked right.
+  // Odd, so the middle frame is level; enemy glow strips are one row of frames, so more frames make them wider
+  shipBankFrames: 7,
+  // roll at full bank (radians)
+  shipBankMaxAngle: 0.7,
+  // how quickly the roll catches up with the movement (per second)
+  shipBankRate: 10,
+  // height of the hull's centre ridge above its wings (px): what makes the roll visible from above
+  shipRidgeHeight: 6,
+  // enemies bank fully at this sideways speed (the player at its own top speed)
+  enemyBankFullSpeed: 200,
 };

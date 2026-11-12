@@ -7,6 +7,7 @@ import { playSound, randomDetune } from "../utils/audio";
 import { glowTextureKey } from "../utils/glow";
 import { LegendEntry } from "./LegendEntry";
 import { spriteSizes, textureResolution } from '../utils/texture-resolution';
+import { bankFrame, bankTextureKey, easeBank, levelBankFrame } from '../utils/banking';
 
 export type EnemyBehavior = "basic" | "strafer" | "diver" | "hover";
 // what the enemy is (movement comes from its behavior)
@@ -97,6 +98,10 @@ export class EnemyShip extends Ship {
   // basic enemies drift sideways at this speed instead of tracking the player
   private driftVx = 0;
 
+  // -1 banked fully left, 1 fully right; only for kinds with bank frames (see configure)
+  private bank = 0;
+  private banks = false;
+
   // taken off the fall speed after a hit that didn't kill (see damage), fading out
   private recoilVy = 0;
 
@@ -129,7 +134,12 @@ export class EnemyShip extends Ship {
     this.hullHeight = hull.height;
     // the baked glow is missing under the canvas renderer
     const glowTexture = glowTextureKey(kind.texture);
-    this.setTexture(this.scene.textures.exists(glowTexture) ? glowTexture : kind.texture);
+    const texture = this.scene.textures.exists(glowTexture) ? glowTexture : kind.texture;
+    // kinds that roll into their sideways movement have a strip of bank frames (see banking.ts)
+    this.banks = this.scene.textures.exists(bankTextureKey(texture));
+    this.bank = 0;
+    if (this.banks) this.setTexture(bankTextureKey(texture), levelBankFrame);
+    else this.setTexture(texture);
     this.setDisplaySize(this.width / textureResolution, this.height / textureResolution);
     // centred on the texture, so it covers the hull and not the glow
     (this.body as Phaser.Physics.Arcade.Body).setSize(hull.width / this.scaleX, hull.height / this.scaleY);
@@ -242,11 +252,19 @@ export class EnemyShip extends Ship {
     }
 
     this.clampToPlayfieldWidth();
+    this.updateBank(dt);
 
     // off-screen clean up: below the screen, or above it once a gunner has left
     if (this.y > constants.height + this.hullHeight || (this.isLeaving && this.y < -this.hullHeight)) {
       this.despawn();
     }
+  }
+
+  private updateBank(dt: number): void {
+    if (!this.banks) return;
+    const vx = (this.body as Phaser.Physics.Arcade.Body).velocity.x;
+    this.bank = easeBank(this.bank, vx / constants.enemyBankFullSpeed, dt);
+    this.setFrame(bankFrame(this.bank), false, false);
   }
 
   // ease the velocity towards the desired one, so turns and stops are smooth arcs

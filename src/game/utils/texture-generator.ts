@@ -1,7 +1,8 @@
 import Phaser from 'phaser';
 import { constants } from '../constants';
 import { nebulaPixels } from './noise';
-import { generateGraphicsTexture } from './texture-resolution';
+import { generateGraphicsTexture, spriteSizes, textureResolution } from './texture-resolution';
+import { BankedHull, bankedHulls, bankTextureKey, drawBankedHull, frameRoll } from './banking';
 
 // the boss hull's underside from left to right, and the cannons hanging below it, in playfield pixels;
 // the boss blocks the laser there (see Boss.undersideAt)
@@ -97,6 +98,7 @@ export function generateAllTextures(scene: Phaser.Scene): void {
   });
   starGfx.destroy();
 
+  for (const [key, hull] of Object.entries(bankedHulls)) generateBankTexture(scene, key as keyof typeof bankedHulls, hull);
   generateNebulaTexture(scene);
   generateLaserTexture(scene);
 
@@ -165,6 +167,23 @@ export function generateAllTextures(scene: Phaser.Scene): void {
   enemyGfx.fillCircle(5, 5, 2);
   generateGraphicsTexture(enemyGfx, 'boss-projectile');
   enemyGfx.destroy();
+}
+
+// every bank frame of a hull, side by side; a gap between them keeps filtering from bleeding across
+function generateBankTexture(scene: Phaser.Scene, key: keyof typeof bankedHulls, hull: BankedHull): void {
+  const { width, height } = spriteSizes[key];
+  const gap = 2;
+  const gfx = scene.add.graphics();
+  for (let i = 0; i < constants.shipBankFrames; i++) drawBankedHull(gfx, hull, width, frameRoll(i), i * (width + gap), 0);
+  gfx.setScale(textureResolution);
+  const stripWidth = constants.shipBankFrames * (width + gap) - gap;
+  gfx.generateTexture(bankTextureKey(key), stripWidth * textureResolution, height * textureResolution);
+  gfx.destroy();
+
+  const texture = scene.textures.get(bankTextureKey(key));
+  for (let i = 0; i < constants.shipBankFrames; i++) {
+    texture.add(i, 0, i * (width + gap) * textureResolution, 0, width * textureResolution, height * textureResolution);
+  }
 }
 
 function generateNebulaTexture(scene: Phaser.Scene): void {
