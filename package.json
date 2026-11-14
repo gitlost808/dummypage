@@ -9,7 +9,6 @@
     "@parcel/transformer-webmanifest": "^2.15.4",
     "buffer": "^6.0.3",
     "parcel": "^2.15.4",
-    "phaser": "^4.2.1",
     "prettier": "^3.9.10",
     "process": "^0.11.10",
     "typescript": "^7.0.2"
@@ -18,15 +17,14 @@
     "start": "parcel",
     "clean": "rm -rf dist",
     "build": "parcel build",
-    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.worker.json",
-    "test:leaderboard": "node --test tests/leaderboard.test.mjs"
+    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.worker.json"
   },
   "source": [
     "src/index.pug",
     "src/services/index.pug",
     "src/ts-status/index.pug",
     "src/fixed-calendar/index.pug",
-    "src/game/index.pug",
+    "src/game/service-worker.ts",
     "src/404.pug"
   ]
 }
