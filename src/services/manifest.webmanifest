@@ -24,10 +24,6 @@
     {
       "name": "TeamSpeak status",
       "url": "/ts-status/"
-    },
-    {
-      "name": "Space game",
-      "url": "/game/"
     }
   ]
 }
