@@ -79,6 +79,24 @@ test("counts Mumble clients and renders names as text with channel hints", async
   assert.equal(app.timers.size, 1);
 });
 
+test("the WhatsApp bridge account is neither listed nor counted", async () => {
+  const app = page(async () =>
+    response([
+      { name: "WhatsAppBridge", channel: "Lobby" },
+      { name: "Alice", channel: "Lobby" },
+    ]),
+  );
+  await app.run("updateUserCount()");
+  assert.equal(app.elements.get("live-value").value, "1");
+  assert.deepEqual(
+    Array.from(
+      app.elements.get("#userlist .player-list").children,
+      (user) => user.textContent,
+    ),
+    ["Alice"],
+  );
+});
+
 test("empty server is zero; HTTP failures and malformed responses clear stale users", async () => {
   for (const failure of [
     { ok: false, status: 503 },

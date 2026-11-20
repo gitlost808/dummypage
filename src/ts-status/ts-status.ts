@@ -5,6 +5,8 @@ import { bootPage } from "../common/scripts/page";
 
 const pollInterval = 30_000;
 const MAX_RETRY_ATTEMPTS = 10;
+// Service accounts connected to Mumble that are not people.
+const EXCLUDED_USER_NAMES = new Set(["WhatsAppBridge"]);
 let retryAttempts = 0;
 let pollTimer: ReturnType<typeof setTimeout>;
 let pendingUpdate: Promise<void> | undefined;
@@ -50,8 +52,11 @@ async function fetchUserCount() {
     ) {
       throw new Error("Invalid Mumble status response");
     }
-    updatePlayerList(data.users);
-    document.querySelector("live-value").value = data.users.length.toString();
+    const users = data.users.filter(
+      (user) => !EXCLUDED_USER_NAMES.has(user.name),
+    );
+    updatePlayerList(users);
+    document.querySelector("live-value").value = users.length.toString();
     retryAttempts = 0;
   } catch (error) {
     console.error("Failed to fetch Mumble users:", error);
