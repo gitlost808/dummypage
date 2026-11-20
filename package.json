@@ -19,6 +19,7 @@
     "clean": "rm -rf dist",
     "build": "parcel build",
     "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.worker.json",
+    "test:mumble-status": "node --test --test-isolation=none tests/mumble-status.test.mjs",
     "test:leaderboard": "node --test tests/leaderboard.test.mjs"
   },
   "source": [

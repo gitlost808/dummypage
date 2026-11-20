@@ -1,7 +1,7 @@
 {
   "services": [
     {
-      "name": "TeamSpeak status",
+      "name": "Mumble status",
       "url": "/ts-status/",
       "description": "See who is online."
     },
@@ -16,7 +16,7 @@
       "description": "A small browser game."
     },
     {
-      "name": "TeamSpeak status",
+      "name": "Mumble status",
       "url": "/ts-status/",
       "description": "See who is online."
     },
@@ -31,7 +31,7 @@
       "description": "A small browser game."
     },
     {
-      "name": "TeamSpeak status",
+      "name": "Mumble status",
       "url": "/ts-status/",
       "description": "See who is online."
     },

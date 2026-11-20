@@ -1,7 +1,7 @@
 extends ../common/templates/layout.pug
 
 block prepend content
-  - var title = "ts status"
+  - var title = "Mumble status"
   - var text = "users online"
 
 block scripts 
@@ -23,7 +23,7 @@ block heading
     live-value -
 
 block append subcontainer
-  p.hint connect via 0x29a.me:4711
+  p.hint connect via 0x29a.me:64738
   
 block append text
   +iconButton("fa-solid fa-microphone", "connect")#connectButton
