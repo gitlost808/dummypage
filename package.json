@@ -23,7 +23,9 @@
   "source": [
     "src/index.pug",
     "src/services/index.pug",
+    "src/mumble-status/index.pug",
     "src/ts-status/index.pug",
+    "src/ts-status/service-worker.ts",
     "src/fixed-calendar/index.pug",
     "src/game/service-worker.ts",
     "src/404.pug"

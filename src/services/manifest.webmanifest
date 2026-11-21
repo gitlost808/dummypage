@@ -23,7 +23,7 @@
   "shortcuts": [
     {
       "name": "Mumble status",
-      "url": "/ts-status/"
+      "url": "/mumble-status/"
     }
   ]
 }

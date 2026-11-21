@@ -6,7 +6,7 @@ import vm from "node:vm";
 
 const source = stripTypeScriptTypes(
   readFileSync(
-    new URL("../src/ts-status/ts-status.ts", import.meta.url),
+    new URL("../src/mumble-status/mumble-status.ts", import.meta.url),
     "utf8",
   )
     .replace(/^import .*;\n/gm, "")
