@@ -7,12 +7,38 @@ const pollInterval = 30_000;
 const MAX_RETRY_ATTEMPTS = 10;
 // Service accounts connected to Mumble that are not people.
 const EXCLUDED_USER_NAMES = new Set(["WhatsAppBridge"]);
+const USERS_ENDPOINT = "https://mumble.0x29a.me/status/users";
+const BRIDGE_PARTICIPANTS_ENDPOINT =
+  "https://mumble.0x29a.me/status/bridge/participants";
 let retryAttempts = 0;
 let pollTimer: ReturnType<typeof setTimeout>;
 let pendingUpdate: Promise<void> | undefined;
 const playerListUl = document.querySelector("#userlist .player-list");
 
-function updatePlayerList(users: { name: string; channel: string }[]) {
+type User = { name: string; channel?: string };
+
+// People in the bridged WhatsApp call. A bridge outage only hides them.
+async function fetchWhatsappParticipantCount() {
+  try {
+    const response = await fetch(BRIDGE_PARTICIPANTS_ENDPOINT, {
+      cache: "no-store",
+      signal: AbortSignal.timeout(15_000),
+    });
+    if (!response.ok)
+      throw new Error(`WhatsApp bridge status returned ${response.status}`);
+    const data = await response.json();
+    return data.active &&
+      Number.isInteger(data.participantCount) &&
+      data.participantCount > 0
+      ? data.participantCount
+      : 0;
+  } catch (error) {
+    console.error("Failed to fetch WhatsApp participants:", error);
+    return 0;
+  }
+}
+
+function updatePlayerList(users: User[]) {
   if (users.length === 0) {
     const noUsersLi = document.createElement("li");
     noUsersLi.textContent = "no users connected";
@@ -25,7 +51,7 @@ function updatePlayerList(users: { name: string; channel: string }[]) {
       const userIcon = document.createElement("i");
       userIcon.classList.add("fa-solid", "fa-person");
       userElem.textContent = user.name;
-      userElem.title = user.channel;
+      if (user.channel) userElem.title = user.channel;
       userElem.prepend(userIcon);
       return userElem;
     }),
@@ -34,7 +60,8 @@ function updatePlayerList(users: { name: string; channel: string }[]) {
 
 async function fetchUserCount() {
   try {
-    const response = await fetch("https://mumble.0x29a.me/status/users", {
+    const whatsappParticipantCount = fetchWhatsappParticipantCount();
+    const response = await fetch(USERS_ENDPOINT, {
       cache: "no-store",
       signal: AbortSignal.timeout(15_000),
     });
@@ -52,9 +79,12 @@ async function fetchUserCount() {
     ) {
       throw new Error("Invalid Mumble status response");
     }
-    const users = data.users.filter(
-      (user) => !EXCLUDED_USER_NAMES.has(user.name),
-    );
+    const users: User[] = [
+      ...data.users.filter((user) => !EXCLUDED_USER_NAMES.has(user.name)),
+      ...Array.from({ length: await whatsappParticipantCount }, () => ({
+        name: "WhatsApp participant",
+      })),
+    ];
     updatePlayerList(users);
     document.querySelector("live-value").value = users.length.toString();
     retryAttempts = 0;
