@@ -59,7 +59,7 @@ const response = (users) => ({ ok: true, json: async () => ({ users }) });
 
 test("counts Mumble clients and renders names as text with channel hints", async () => {
   const app = page(async (url, options) => {
-    assert.equal(url, "https://ts.0x29a.me/api/mumble/users");
+    assert.equal(url, "https://mumble.0x29a.me/status/users");
     assert.equal(options.cache, "no-store");
     return response([
       { name: "<Alice>", channel: "Lobby" },
