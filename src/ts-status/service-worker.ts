@@ -18,6 +18,7 @@ async function activate() {
 self.addEventListener("activate", e => e.waitUntil(activate()));
 
 self.addEventListener('fetch', (event: FetchEvent) => {
+  if (new URL(event.request.url).origin !== self.location.origin) return;
   event.respondWith(
     caches.match(event.request).then(cached => cached || fetch(event.request))
   );
