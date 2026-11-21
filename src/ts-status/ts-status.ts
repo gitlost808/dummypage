@@ -34,7 +34,7 @@ function updatePlayerList(users: { name: string; channel: string }[]) {
 
 async function fetchUserCount() {
   try {
-    const response = await fetch("https://ts.0x29a.me/api/mumble/users", {
+    const response = await fetch("https://mumble.0x29a.me/api/users", {
       cache: "no-store",
       signal: AbortSignal.timeout(15_000),
     });
