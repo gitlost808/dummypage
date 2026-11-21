@@ -13,7 +13,13 @@ const source = stripTypeScriptTypes(
     .split('if ("serviceWorker" in navigator)')[0],
 );
 
-function page(fetch) {
+const BRIDGE_URL = "https://mumble.0x29a.me/status/bridge/participants";
+const bridgeResponse = (participantCount, active = participantCount > 0) => ({
+  ok: true,
+  json: async () => ({ active, participantCount }),
+});
+
+function page(fetch, bridge = async () => bridgeResponse(0)) {
   const elements = new Map();
   const timers = new Map();
   const element = () => ({
@@ -41,7 +47,8 @@ function page(fetch) {
       },
     },
     console: { error() {} },
-    fetch,
+    fetch: (url, options) =>
+      url === BRIDGE_URL ? bridge(url, options) : fetch(url, options),
     AbortSignal: { timeout() {} },
     setTimeout(callback) {
       timers.set(++timerId, callback);
@@ -95,6 +102,43 @@ test("the WhatsApp bridge account is neither listed nor counted", async () => {
     ),
     ["Alice"],
   );
+});
+
+test("WhatsApp call participants are listed and counted", async () => {
+  const app = page(
+    async () => response([{ name: "Alice", channel: "Lobby" }]),
+    async (url, options) => {
+      assert.equal(options.cache, "no-store");
+      return bridgeResponse(2);
+    },
+  );
+  await app.run("updateUserCount()");
+  assert.equal(app.elements.get("live-value").value, "3");
+  assert.deepEqual(
+    Array.from(
+      app.elements.get("#userlist .player-list").children,
+      (user) => user.textContent,
+    ),
+    ["Alice", "WhatsApp participant", "WhatsApp participant"],
+  );
+});
+
+test("inactive calls, malformed counts and bridge failures add no participants", async () => {
+  for (const bridge of [
+    async () => bridgeResponse(3, false),
+    async () => ({ ok: true, json: async () => ({ active: true }) }),
+    async () => ({ ok: false, status: 502 }),
+    async () => {
+      throw new TypeError("network error");
+    },
+  ]) {
+    const app = page(
+      async () => response([{ name: "Alice", channel: "Lobby" }]),
+      bridge,
+    );
+    await app.run("updateUserCount()");
+    assert.equal(app.elements.get("live-value").value, "1");
+  }
 });
 
 test("empty server is zero; HTTP failures and malformed responses clear stale users", async () => {
