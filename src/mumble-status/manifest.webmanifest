@@ -1,7 +1,7 @@
 {
   "name": "0x29a.me Mumble Status",
   "short_name": "0x29a.me Mumble status",
-  "start_url": "/ts-status/",
+  "start_url": "/mumble-status/",
   "display": "standalone",
   "background_color": "#060606",
   "theme_color": "#859900",
