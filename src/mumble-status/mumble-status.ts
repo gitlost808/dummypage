@@ -115,7 +115,8 @@ async function updateUserCount() {
 
 function setupConnectButton() {
   document.querySelector("#connectButton")?.addEventListener("click", () => {
-    window.location.replace("mumble://0x29a.me:64738/");
+    // The browser client; desktop users can copy the address instead.
+    window.location.assign("https://mumble.0x29a.me/");
   });
 }
 
