@@ -194,3 +194,12 @@ test("ten failures stop polling and manual refresh can recover", async () => {
   assert.equal(app.elements.get("live-value").value, "0");
   assert.equal(app.timers.size, 1);
 });
+
+test("the microphone button opens the browser client", () => {
+  const app = page(async () => response([]));
+  const opened = [];
+  app.run("this").window = { location: { assign: (url) => opened.push(url) } };
+  app.run("setupConnectButton()");
+  app.elements.get("#connectButton").listeners.get("click")();
+  assert.deepEqual(opened, ["https://mumble.0x29a.me/"]);
+});
