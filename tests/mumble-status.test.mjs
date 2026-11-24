@@ -104,6 +104,23 @@ test("the WhatsApp bridge account is neither listed nor counted", async () => {
   );
 });
 
+test("the Mumpeer relay is neither listed nor counted", async () => {
+  for (const people of [[], [{ name: "MumpeerRelayFan", channel: "Lobby" }]]) {
+    const app = page(async () =>
+      response([{ name: "MumpeerRelay", channel: "Lobby" }, ...people]),
+    );
+    await app.run("updateUserCount()");
+    assert.equal(app.elements.get("live-value").value, String(people.length));
+    assert.deepEqual(
+      Array.from(
+        app.elements.get("#userlist .player-list").children,
+        (user) => user.textContent,
+      ),
+      people.length ? ["MumpeerRelayFan"] : ["no users connected"],
+    );
+  }
+});
+
 test("WhatsApp call participants are listed and counted", async () => {
   const app = page(
     async () => response([{ name: "Alice", channel: "Lobby" }]),

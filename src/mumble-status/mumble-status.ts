@@ -6,7 +6,7 @@ import { bootPage } from "../common/scripts/page";
 const pollInterval = 30_000;
 const MAX_RETRY_ATTEMPTS = 10;
 // Service accounts connected to Mumble that are not people.
-const EXCLUDED_USER_NAMES = new Set(["WhatsAppBridge"]);
+const EXCLUDED_USER_NAMES = new Set(["WhatsAppBridge", "MumpeerRelay"]);
 const USERS_ENDPOINT = "https://mumble.0x29a.me/status/users";
 const BRIDGE_PARTICIPANTS_ENDPOINT =
   "https://mumble.0x29a.me/status/bridge/participants";
