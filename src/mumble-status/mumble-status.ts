@@ -8,6 +8,7 @@ const MAX_RETRY_ATTEMPTS = 10;
 // Service accounts connected to Mumble that are not people.
 const EXCLUDED_USER_NAMES = new Set(["WhatsAppBridge"]);
 const USERS_ENDPOINT = "https://mumble.0x29a.me/status/users";
+const TEAMSPEAK_ENDPOINT = "https://mumble.0x29a.me/status/teamspeak";
 const BRIDGE_PARTICIPANTS_ENDPOINT =
   "https://mumble.0x29a.me/status/bridge/participants";
 let retryAttempts = 0;
@@ -15,7 +16,40 @@ let pollTimer: ReturnType<typeof setTimeout>;
 let pendingUpdate: Promise<void> | undefined;
 const playerListUl = document.querySelector("#userlist .player-list");
 
-type User = { name: string; channel?: string };
+type User = { name: string; channel?: string; teamspeak?: boolean };
+
+// Clients on the TeamSpeak server, which still runs next to Mumble. A
+// TeamSpeak outage only hides them.
+async function fetchTeamSpeakUsers(): Promise<User[]> {
+  try {
+    const response = await fetch(TEAMSPEAK_ENDPOINT, {
+      cache: "no-store",
+      signal: AbortSignal.timeout(15_000),
+    });
+    if (!response.ok)
+      throw new Error(`TeamSpeak status returned ${response.status}`);
+    const data = await response.json();
+    if (
+      !Array.isArray(data.users) ||
+      data.users.some(
+        (user) =>
+          !user ||
+          typeof user.name !== "string" ||
+          typeof user.channel !== "string",
+      )
+    ) {
+      throw new Error("Invalid TeamSpeak status response");
+    }
+    return data.users.map((user) => ({
+      name: user.name,
+      channel: user.channel,
+      teamspeak: true,
+    }));
+  } catch (error) {
+    console.error("Failed to fetch TeamSpeak users:", error);
+    return [];
+  }
+}
 
 // People in the bridged WhatsApp call. A bridge outage only hides them.
 async function fetchWhatsappParticipantCount() {
@@ -49,9 +83,17 @@ function updatePlayerList(users: User[]) {
     ...users.map((user) => {
       const userElem = document.createElement("li");
       const userIcon = document.createElement("i");
-      userIcon.classList.add("fa-solid", "fa-person");
+      // TeamSpeak users get a headset icon and a muted row.
+      userIcon.classList.add(
+        "fa-solid",
+        user.teamspeak ? "fa-headset" : "fa-person",
+      );
+      if (user.teamspeak) userElem.classList.add("teamspeak");
       userElem.textContent = user.name;
-      if (user.channel) userElem.title = user.channel;
+      if (user.channel)
+        userElem.title = user.teamspeak
+          ? `TeamSpeak · ${user.channel}`
+          : user.channel;
       userElem.prepend(userIcon);
       return userElem;
     }),
@@ -61,6 +103,7 @@ function updatePlayerList(users: User[]) {
 async function fetchUserCount() {
   try {
     const whatsappParticipantCount = fetchWhatsappParticipantCount();
+    const teamspeakUsers = fetchTeamSpeakUsers();
     const response = await fetch(USERS_ENDPOINT, {
       cache: "no-store",
       signal: AbortSignal.timeout(15_000),
@@ -81,6 +124,7 @@ async function fetchUserCount() {
     }
     const users: User[] = [
       ...data.users.filter((user) => !EXCLUDED_USER_NAMES.has(user.name)),
+      ...(await teamspeakUsers),
       ...Array.from({ length: await whatsappParticipantCount }, () => ({
         name: "WhatsApp participant",
       })),

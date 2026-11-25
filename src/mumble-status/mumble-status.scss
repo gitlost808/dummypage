@@ -8,6 +8,11 @@
   li {
     margin-bottom: variables.$margin-bottom;
 
+    // TeamSpeak users, visually set apart from Mumble and WhatsApp.
+    &.teamspeak {
+      opacity: 0.65;
+    }
+
     i {
       margin-right: variables.$margin-bottom;
       min-width: 16px;
