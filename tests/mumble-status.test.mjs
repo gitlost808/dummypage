@@ -19,24 +19,34 @@ const bridgeResponse = (participantCount, active = participantCount > 0) => ({
   json: async () => ({ active, participantCount }),
 });
 
-function page(fetch, bridge = async () => bridgeResponse(0)) {
+const TEAMSPEAK_URL = "https://mumble.0x29a.me/status/teamspeak";
+
+function page(
+  fetch,
+  bridge = async () => bridgeResponse(0),
+  teamspeak = async () => response([]),
+) {
   const elements = new Map();
   const timers = new Map();
-  const element = () => ({
-    textContent: "",
-    children: [],
-    listeners: new Map(),
-    classList: { add() {} },
-    replaceChildren(...children) {
-      this.children = children;
-    },
-    prepend(icon) {
-      this.icon = icon;
-    },
-    addEventListener(name, callback) {
-      this.listeners.set(name, callback);
-    },
-  });
+  const element = () => {
+    const created = {
+      classes: [],
+      textContent: "",
+      children: [],
+      listeners: new Map(),
+      classList: { add: (...names) => created.classes.push(...names) },
+      replaceChildren(...children) {
+        this.children = children;
+      },
+      prepend(icon) {
+        this.icon = icon;
+      },
+      addEventListener(name, callback) {
+        this.listeners.set(name, callback);
+      },
+    };
+    return created;
+  };
   let timerId = 0;
   const context = vm.createContext({
     document: {
@@ -48,7 +58,11 @@ function page(fetch, bridge = async () => bridgeResponse(0)) {
     },
     console: { error() {} },
     fetch: (url, options) =>
-      url === BRIDGE_URL ? bridge(url, options) : fetch(url, options),
+      url === BRIDGE_URL
+        ? bridge(url, options)
+        : url === TEAMSPEAK_URL
+          ? teamspeak(url, options)
+          : fetch(url, options),
     AbortSignal: { timeout() {} },
     setTimeout(callback) {
       timers.set(++timerId, callback);
@@ -138,6 +152,50 @@ test("WhatsApp call participants are listed and counted", async () => {
     ),
     ["Alice", "WhatsApp participant", "WhatsApp participant"],
   );
+});
+
+test("TeamSpeak users are listed and counted with a distinct icon and muted row", async () => {
+  const app = page(
+    async () => response([{ name: "Alice", channel: "Lobby" }]),
+    async () => bridgeResponse(1),
+    async (url, options) => {
+      assert.equal(options.cache, "no-store");
+      return response([{ name: "<Bob>", channel: "Sleep" }]);
+    },
+  );
+  await app.run("updateUserCount()");
+  assert.equal(app.elements.get("live-value").value, "3");
+  const users = app.elements.get("#userlist .player-list").children;
+  assert.deepEqual(
+    Array.from(users, (user) => [user.textContent, user.title]),
+    [
+      ["Alice", "Lobby"],
+      ["<Bob>", "TeamSpeak · Sleep"],
+      ["WhatsApp participant", undefined],
+    ],
+  );
+  assert.deepEqual(users[0].classes, []);
+  assert.deepEqual(users[1].classes, ["teamspeak"]);
+  assert.ok(users[1].icon.classes.includes("fa-headset"));
+  assert.ok(users[0].icon.classes.includes("fa-person"));
+});
+
+test("TeamSpeak failures and malformed responses only hide TeamSpeak users", async () => {
+  for (const teamspeak of [
+    async () => ({ ok: false, status: 503 }),
+    async () => ({ ok: true, json: async () => ({ users: [{}] }) }),
+    async () => {
+      throw new TypeError("network error");
+    },
+  ]) {
+    const app = page(
+      async () => response([{ name: "Alice", channel: "Lobby" }]),
+      async () => bridgeResponse(0),
+      teamspeak,
+    );
+    await app.run("updateUserCount()");
+    assert.equal(app.elements.get("live-value").value, "1");
+  }
 });
 
 test("inactive calls, malformed counts and bridge failures add no participants", async () => {
